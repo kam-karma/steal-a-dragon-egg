@@ -1,0 +1,17 @@
+node_modules
+dist
+coverage
+.env*
+
+# Raw art sources and third-party models (some are non-commercial licences): local only.
+3D Models/
+art/
+
+# Private planning, business and playtest notes: local only.
+TASARIM.md
+TUTMA-VE-REKLAM.md
+docs/
+balance/
+
+# Local editor and tool settings.
+.claude/

@@ -1,0 +1,24 @@
+{
+  "name": "uyuyan-ejderha",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5183 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@gltf-transform/cli": "^4.5.1",
+    "@types/three": "^0.187.0",
+    "@vitest/coverage-v8": "^5.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
+  },
+  "dependencies": {
+    "@fontsource/lilita-one": "^5.3.0",
+    "three": "^0.187.0"
+  }
+}
