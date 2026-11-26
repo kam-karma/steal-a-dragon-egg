@@ -1,4 +1,4 @@
-import { T } from './i18n'
+import { displayName, T } from './i18n'
 import { icon } from './icons'
 import { incomePerSecond } from './sim/nests'
 import type { GameState } from './sim/types'
@@ -38,7 +38,7 @@ export function createHud(root: HTMLElement): Hud {
   const coins = el('div', 'coins', purseText)
   const rate = el('div', 'rate', purseText)
 
-  const boardBox = el('div', 'board', ui, `<div class="boardhead">${icon('trophy')}<span>Sıralama</span></div>`)
+  const boardBox = el('div', 'board', ui, `<div class="boardhead">${icon('trophy')}<span>${T.board}</span></div>`)
   const board = el('div', 'rows', boardBox)
   const mute = el('button', 'mute', ui, '🔊')
 
@@ -65,8 +65,8 @@ export function createHud(root: HTMLElement): Hud {
     meter.classList.toggle('warn', m === 'stir')
 
     const me = state.actors[player]
-    coins.textContent = Math.floor(me.coins).toLocaleString('tr-TR')
-    rate.textContent = `+${Math.round(incomePerSecond(state.nests[player], me))}/sn`
+    coins.textContent = Math.floor(me.coins).toLocaleString(T.locale)
+    rate.textContent = `+${Math.round(incomePerSecond(state.nests[player], me))}${T.perSec}`
 
     const ranked = [...state.actors].sort((a, b) => b.coins - a.coins)
     board.innerHTML = ranked
@@ -74,7 +74,7 @@ export function createHud(root: HTMLElement): Hud {
         (a, i) =>
           `<div class="row${a.id === player ? ' me' : ''}"><span>${i + 1}.</span><i style="background:#${a.color
             .toString(16)
-            .padStart(6, '0')}"></i><b>${a.name}</b><em>${Math.floor(a.coins)}</em></div>`,
+            .padStart(6, '0')}"></i><b>${displayName(a)}</b><em>${Math.floor(a.coins)}</em></div>`,
       )
       .join('')
   }

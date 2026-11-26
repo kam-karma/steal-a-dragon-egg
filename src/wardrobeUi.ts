@@ -1,4 +1,5 @@
 import type { Ads } from './ads'
+import { T } from './i18n'
 import { icon } from './icons'
 import { CHARACTERS, COLORS, type CatalogItem, type CharacterId, buyWithGold, fromStored, isOwned, select, type Wardrobe, watchedAd } from './meta/wardrobe'
 
@@ -28,7 +29,7 @@ interface Deps {
   readonly onWear: (w: Wardrobe) => void
 }
 
-const fmt = (n: number): string => n.toLocaleString('tr-TR')
+const fmt = (n: number): string => n.toLocaleString(T.locale)
 
 /** The 👕 button and the wardrobe panel: wear, buy with gold, or unlock with rewarded ads. */
 export function createWardrobeUi(root: HTMLElement, d: Deps): { readonly current: () => Wardrobe } {
@@ -62,7 +63,7 @@ export function createWardrobeUi(root: HTMLElement, d: Deps): { readonly current
       row.appendChild(b)
     }
     if (isOwned(w, it.id)) {
-      add('Giy', 'wbtn', wear)
+      add(T.wardrobe.wear, 'wbtn', wear)
       return row
     }
     const affordable = d.coins() >= it.gold
@@ -72,7 +73,7 @@ export function createWardrobeUi(root: HTMLElement, d: Deps): { readonly current
       d.spend(r.price)
       change(r.wardrobe)
     })
-    add(`<span class="adplay">▶</span><span>Reklam ${w.adProgress[it.id] ?? 0}/${it.ads}</span>`, 'wbtn ad', () => {
+    add(`<span class="adplay">▶</span><span>${T.wardrobe.ad(w.adProgress[it.id] ?? 0, it.ads)}</span>`, 'wbtn ad', () => {
       void d.ads.rewarded().then((ok) => {
         if (ok) change(watchedAd(w, it.id))
       })
@@ -84,7 +85,7 @@ export function createWardrobeUi(root: HTMLElement, d: Deps): { readonly current
     panel.innerHTML = ''
     const head = document.createElement('div')
     head.className = 'whead'
-    head.innerHTML = `${icon('wardrobe', 'tic')}<b>Gardırop</b><span>${icon('coin', 'bic')}${fmt(Math.floor(d.coins()))}</span>`
+    head.innerHTML = `${icon('wardrobe', 'tic')}<b>${T.wardrobe.title}</b><span>${icon('coin', 'bic')}${fmt(Math.floor(d.coins()))}</span>`
     const close = document.createElement('button')
     close.className = 'wclose'
     close.textContent = '✕'
@@ -99,7 +100,7 @@ export function createWardrobeUi(root: HTMLElement, d: Deps): { readonly current
     for (const c of CHARACTERS) {
       const card = document.createElement('div')
       card.className = `wcard${w.wearing.character === c.id ? ' on' : ''}`
-      card.innerHTML = `<div class="wemoji">${c.emoji}</div><div class="wname">${c.name}</div>`
+      card.innerHTML = `<div class="wemoji">${c.emoji}</div><div class="wname">${T.wardrobe.names[c.id] ?? c.name}</div>`
       card.appendChild(offer(c, () => change(select(w, c.id as CharacterId, w.wearing.color))))
       chars.appendChild(card)
     }
@@ -110,7 +111,7 @@ export function createWardrobeUi(root: HTMLElement, d: Deps): { readonly current
       const card = document.createElement('div')
       card.className = `wcard${w.wearing.color === c.id ? ' on' : ''}`
       const sw = c.hex === null ? 'linear-gradient(135deg,#b400ff,#ff9a1a)' : `#${c.hex.toString(16).padStart(6, '0')}`
-      card.innerHTML = `<div class="wswatch" style="background:${sw}"></div><div class="wname">${c.name}</div>`
+      card.innerHTML = `<div class="wswatch" style="background:${sw}"></div><div class="wname">${T.wardrobe.names[c.id] ?? c.name}</div>`
       card.appendChild(offer(c, () => change(select(w, w.wearing.character, c.id))))
       cols.appendChild(card)
     }

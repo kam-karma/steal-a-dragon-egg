@@ -1,5 +1,8 @@
 node_modules
 dist
+dist-crazygames
+*.zip
+crazygames-submission/
 coverage
 .env*
 

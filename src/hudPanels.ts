@@ -1,7 +1,7 @@
-import { T } from './i18n'
+import { levelTitle, T } from './i18n'
 import { icon, type IconName } from './icons'
 import { CFG } from './sim/config'
-import { levelFromXp, nestCapacity, streakMultiplier, titleFor, upgradeCost } from './sim/economy'
+import { levelFromXp, nestCapacity, streakMultiplier, upgradeCost } from './sim/economy'
 import type { Action, GameState, Layout, Rarity } from './sim/types'
 
 export interface Panels {
@@ -41,7 +41,7 @@ function createStatus(ui: HTMLElement): (state: GameState, player: number) => vo
     const lvl = levelFromXp(me.xp)
     const lo = 25 * lvl * (lvl + 1)
     const hi = 25 * (lvl + 1) * (lvl + 2)
-    level.textContent = `Sv ${lvl} · ${titleFor(lvl)}${me.rebirths > 0 ? ` · 👑${me.rebirths}` : ''}`
+    level.textContent = `${T.levelShort} ${lvl} · ${levelTitle(lvl)}${me.rebirths > 0 ? ` · 👑${me.rebirths}` : ''}`
     fill.style.width = `${((me.xp - lo) / (hi - lo)) * 100}%`
     const it = me.items
     const rows: [IconName, string, number][] = [

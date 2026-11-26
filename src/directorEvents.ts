@@ -2,11 +2,10 @@ import * as THREE from 'three'
 import type { Sfx } from './audio'
 import type { Hud } from './hud'
 import type { Panels } from './hudPanels'
-import { T } from './i18n'
+import { displayName, levelTitle, T } from './i18n'
 import type { DragonRig } from './render/dragonMesh'
 import type { HoardView } from './render/hoardView'
 import type { Particles } from './render/particles'
-import { titleFor } from './sim/economy'
 import { PLAYER_ID } from './sim/ids'
 import type { GameEvent, GameState, Layout } from './sim/types'
 
@@ -64,7 +63,7 @@ function mine(e: GameEvent, d: FeelDeps): boolean {
     case 'levelUp':
       if (e.actor !== PLAYER_ID) return true
       d.sfx.levelUp()
-      d.hud.toast(T.toast.levelUp(e.level, titleFor(e.level)), 'good')
+      d.hud.toast(T.toast.levelUp(e.level, levelTitle(e.level)), 'good')
       return true
     case 'rebirth':
       d.sfx.fanfare()
@@ -91,7 +90,7 @@ function nest(e: GameEvent, s: GameState, d: FeelDeps): boolean {
     case 'shiny':
       d.fx.burst(nestAt(d, e.nest), 0xfff3a0, 70)
       d.sfx.shiny()
-      d.hud.toast(e.nest === PLAYER_ID ? T.toast.shiny : `${s.actors[e.nest].name}: ${T.toast.shiny}`, 'good')
+      d.hud.toast(e.nest === PLAYER_ID ? T.toast.shiny : `${displayName(s.actors[e.nest])}: ${T.toast.shiny}`, 'good')
       return true
     case 'coin': {
       if (e.nest !== PLAYER_ID) return true
@@ -176,7 +175,7 @@ function world(e: GameEvent, s: GameState, d: FeelDeps): boolean {
       d.sfx.roar()
       d.shake(1.4)
       d.hud.toast(T.toast.wake, 'bad')
-      if (e.culprit !== null) d.panels.culprit(e.culprit === PLAYER_ID ? 'SEN' : s.actors[e.culprit].name)
+      if (e.culprit !== null) d.panels.culprit(displayName(s.actors[e.culprit]))
       d.hintOnce('wake', T.hint.wake, 4)
       return true
     case 'fire':
@@ -188,7 +187,7 @@ function world(e: GameEvent, s: GameState, d: FeelDeps): boolean {
     case 'pan':
       d.sfx.clang()
       d.shake(0.3)
-      d.hud.toast(T.toast.pan(e.actor === PLAYER_ID ? 'SEN' : s.actors[e.actor].name), 'info')
+      d.hud.toast(T.toast.pan(displayName(s.actors[e.actor])), 'info')
       return true
     case 'panSpawn':
       d.hintOnce('pan', T.hint.pan, 6)

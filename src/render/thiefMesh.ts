@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { displayName } from '../i18n'
 import type { Actor } from '../sim/types'
 import { makeBaby, makeEgg } from './eggMesh'
 import { makePan } from './pickupsView'
@@ -81,7 +82,7 @@ export function createThief(actor: Actor): ThiefRig {
     return leg
   })
 
-  const label = labelSprite(actor.name, actor.isBot ? '#ffffff' : '#ffe14d')
+  const label = labelSprite(displayName(actor), actor.isBot ? '#ffffff' : '#ffe14d')
   label.position.y = 2.55
   group.add(label)
 

@@ -94,8 +94,10 @@ function conceptOutbox(): Plugin {
 }
 
 // Poki serves a game from a sub-path, so every asset URL must be relative.
-export default defineConfig({
+// `--mode crazygames` builds the CrazyGames version: their SDK only, no Poki code.
+export default defineConfig(({ mode }) => ({
   base: './',
+  define: mode === 'crazygames' ? { 'import.meta.env.VITE_PLATFORM': JSON.stringify('crazygames') } : {},
   plugins: [artInbox(), conceptOutbox()],
   // Our art inbox answers its own CORS; Vite's default CORS would swallow the preflight.
   server: { cors: false },
@@ -111,4 +113,4 @@ export default defineConfig({
       exclude: ['src/sim/**/*.test.ts', 'src/sim/types.ts', 'src/sim/testUtil.ts'],
     },
   },
-})
+}))

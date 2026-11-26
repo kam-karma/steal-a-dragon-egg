@@ -13,7 +13,7 @@ import { createWardrobeUi } from './wardrobeUi'
 import { createDirector } from './director'
 import { createHud } from './hud'
 import { createPanels } from './hudPanels'
-import { T } from './i18n'
+import { LANG, T } from './i18n'
 import { createMoveInput } from './input'
 import { buildCave, fadePillars } from './render/cave'
 import { createDragon, type DragonRig } from './render/dragonMesh'
@@ -34,6 +34,7 @@ import type { Action, GameState, Reward } from './sim/types'
 import { dist, makeLayout } from './sim/world'
 import { autoSave, loadSave, resetIfAsked } from './storage'
 
+document.documentElement.lang = LANG
 const canvas = document.getElementById('stage') as HTMLCanvasElement
 const layout = makeLayout(7)
 resetIfAsked()
