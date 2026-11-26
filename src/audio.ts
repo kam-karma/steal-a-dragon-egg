@@ -2,7 +2,7 @@ import type { Rarity } from './sim/types'
 
 /** Every sound is synthesized: no files to download, tiny build. */
 export interface Sfx {
-  readonly unlock: () => void
+  readonly unlock: () => boolean
   readonly jingle: (near: number) => void
   readonly snore: (inhale: boolean) => void
   readonly heartbeat: (strength: number) => void
@@ -22,6 +22,8 @@ export interface Sfx {
   readonly levelUp: () => void
   readonly grab: () => void
   readonly toggleMute: () => boolean
+  /** The audio context and master bus once sound is unlocked (music plays through it). */
+  readonly bus: () => { readonly ctx: AudioContext; readonly out: AudioNode } | null
   /** Silence everything while an ad plays. */
   readonly setPaused: (paused: boolean) => void
 }
@@ -30,6 +32,8 @@ export function createSfx(): Sfx {
   let ctx: AudioContext | null = null
   let master: GainNode | null = null
   let muted = false
+  /** True while an ad plays: no gesture may start or resume sound until it ends. */
+  let adPaused = false
   let noiseBuf: AudioBuffer | null = null
 
   function now(): number {
@@ -69,10 +73,12 @@ export function createSfx(): Sfx {
     src.stop(at + dur + 0.05)
   }
 
-  function unlock(): void {
+  /** Creates or resumes the audio context; true once it is actually playing. */
+  function unlock(): boolean {
+    if (adPaused) return false
     if (ctx !== null) {
-      void ctx.resume()
-      return
+      if (ctx.state !== 'running') void ctx.resume()
+      return ctx.state === 'running'
     }
     ctx = new AudioContext()
     master = ctx.createGain()
@@ -81,6 +87,7 @@ export function createSfx(): Sfx {
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate)
     const d = noiseBuf.getChannelData(0)
     for (let k = 0; k < d.length; k++) d[k] = Math.random() * 2 - 1
+    return ctx.state === 'running'
   }
 
   return {
@@ -177,7 +184,9 @@ export function createSfx(): Sfx {
       tone(400, t, 0.1, 'square', 0.08, 900)
       tone(900, t + 0.1, 0.12, 'triangle', 0.1, 1400)
     },
+    bus: () => (ctx === null || master === null ? null : { ctx, out: master }),
     setPaused: (paused) => {
+      adPaused = paused
       if (ctx === null) return
       void (paused ? ctx.suspend() : ctx.resume())
     },

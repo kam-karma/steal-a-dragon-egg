@@ -65,7 +65,8 @@ function createNestPanel(ui: HTMLElement, onAction: (a: Action) => void): (state
     const me = state.actors[player]
     const nest = state.nests[me.nest]
     const home = layout.nests[me.nest]
-    const atHome = Math.hypot(me.pos.x - home.x, me.pos.z - home.z) < CFG.guardRadius
+    // Hidden until the first egg is home: a new player only needs to learn the egg run.
+    const atHome = Math.hypot(me.pos.x - home.x, me.pos.z - home.z) < CFG.guardRadius && (nest.babies.length > 0 || nest.hatching.length > 0 || me.coins > 0)
     panel.style.display = atHome ? 'flex' : 'none'
     if (!atHome) {
       confirming = false

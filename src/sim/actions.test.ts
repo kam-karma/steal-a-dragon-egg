@@ -127,3 +127,17 @@ describe('spending gold on cosmetics', () => {
     expect(act(g, { type: 'spend', amount: Number.NaN }).state).toEqual(g)
   })
 })
+
+describe('mission bonus', () => {
+  it('adds the gold and XP a finished mission pays, anywhere in the cave', () => {
+    const g = game({ coins: 10, xp: 5, pos: { x: 0, z: 0 } })
+    const r = act(g, { type: 'bonus', coins: 120, xp: 30 })
+    expect(me(r.state).coins).toBe(130)
+    expect(me(r.state).xp).toBe(35)
+  })
+  it('ignores negative or broken amounts', () => {
+    const g = game({ coins: 10 })
+    expect(act(g, { type: 'bonus', coins: -5, xp: 0 }).state).toEqual(g)
+    expect(act(g, { type: 'bonus', coins: Number.NaN, xp: 0 }).state).toEqual(g)
+  })
+})

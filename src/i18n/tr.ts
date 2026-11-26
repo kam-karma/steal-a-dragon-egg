@@ -124,6 +124,24 @@ export const TR = {
   perSec: '/sn',
   levelShort: 'Sv',
   you: 'SEN',
+  controls: { move: 'Yürü', or: 'ya da', drag: 'Yürümek için sürükle' },
+  loading: 'Yükleniyor…',
+  missions: {
+    title: 'GÖREVLER',
+    text: (m: { kind: string; goal: number; min: number }): string => {
+      switch (m.kind) {
+        case 'deliver': return `${m.goal} yumurta getir`
+        case 'rare': return `${TR.rarity[m.min as Rarity]}+ yumurta getir`
+        case 'streak': return `Uyandırmadan art arda ${m.goal}`
+        case 'steal': return 'Rakipten yavru çal'
+        case 'rainbow': return 'Gökkuşağı yumurtasını getir'
+        case 'merge': return '3 yavruyu birleştir'
+        default: return `${m.goal} hapşırık altını topla`
+      }
+    },
+    done: (coins: number) => `Görev tamam! +${coins.toLocaleString('tr-TR')} 🪙`,
+  },
+  botNames: ['KaplanKız', 'MiniMert', 'Zeyno', 'TurboAli', 'Pıtırcık', 'Bulut', 'ŞimşekEce'],
   titles: ['Acemi Fare', 'Gölge Pati', 'Sessiz Rüzgâr', 'Altın Parmak', 'Ejderha Fısıldayan'],
   wardrobe: {
     title: 'Gardırop',

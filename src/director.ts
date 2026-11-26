@@ -3,7 +3,7 @@ import type { Sfx } from './audio'
 import { feel, type FeelDeps } from './directorEvents'
 import type { Hud } from './hud'
 import type { Panels } from './hudPanels'
-import { T } from './i18n'
+import { displayName, T } from './i18n'
 import type { DragonRig } from './render/dragonMesh'
 import type { HoardView } from './render/hoardView'
 import type { Particles } from './render/particles'
@@ -107,7 +107,7 @@ export function createDirector(d: Deps): Director {
     const p = d.layout.nests[PLAYER_ID]
     if (lurker !== undefined && clock - lurkHintAt > 25 && Math.hypot(lurker.pos.x - p.x, lurker.pos.z - p.z) < 10) {
       lurkHintAt = clock
-      d.hud.toast(T.toast.lurker(lurker.name), 'info')
+      d.hud.toast(T.toast.lurker(displayName(lurker)), 'info')
     }
     const h = state.happenings
     d.panels.banner(h.rainbowWarned && h.rainbowIn > 0 ? `🌈 ${Math.ceil(h.rainbowIn)}` : null)

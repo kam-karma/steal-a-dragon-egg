@@ -124,7 +124,7 @@ function raid(e: GameEvent, s: GameState, d: FeelDeps): boolean {
     case 'steal':
       if (e.from === PLAYER_ID) {
         d.sfx.alarm()
-        d.hud.toast(T.toast.stolenFromMe(s.actors[e.actor].name), 'bad')
+        d.hud.toast(T.toast.stolenFromMe(displayName(s.actors[e.actor])), 'bad')
         d.hintOnce('stolenMine', T.hint.stolenMine, 4)
       } else if (e.actor === PLAYER_ID) {
         d.sfx.grab()
@@ -137,7 +137,7 @@ function raid(e: GameEvent, s: GameState, d: FeelDeps): boolean {
         d.sfx.hatch(e.rarity)
         d.fx.burst(nestAt(d, PLAYER_ID), 0x7dffa0, 30)
         d.hud.toast(T.toast.claimed, 'good')
-      } else if (e.from === PLAYER_ID) d.hud.toast(T.toast.lostBaby(s.actors[e.actor].name), 'bad')
+      } else if (e.from === PLAYER_ID) d.hud.toast(T.toast.lostBaby(displayName(s.actors[e.actor])), 'bad')
       return true
     case 'recover':
       if (e.owner === PLAYER_ID) {

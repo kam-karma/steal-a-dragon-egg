@@ -24,8 +24,9 @@ function advance(g: GameState, seconds: number, dt = 0.5): { state: GameState; e
 }
 
 describe('rainbow egg', () => {
-  it('warns 10 s ahead and appears every 240 s', () => {
-    const at230 = advance(quiet(), 230)
+  it('warns 10 s ahead of the first rainbow egg', () => {
+    const lead = CFG.firstRainbowAt - CFG.rainbowWarn
+    const at230 = advance(quiet(), lead)
     expect(at230.events.some((e) => e.type === 'rainbowWarn')).toBe(false)
     const at231 = advance(at230.state, 1)
     expect(at231.events.some((e) => e.type === 'rainbowWarn')).toBe(true)
@@ -88,5 +89,17 @@ describe('sneeze', () => {
     const after = stepHappenings(g, layout, 0.01)
     expect(after.events).toContainEqual({ type: 'coinPickup', actor: PLAYER_ID, value: CFG.sneezeCoinValue })
     expect(after.state.actors[PLAYER_ID].coins).toBe(CFG.sneezeCoinValue)
+  })
+})
+
+describe('the first minutes are not all the same', () => {
+  it('brings the first rainbow egg, pan and sneeze early, then settles into the usual rhythm', () => {
+    const r = advance(quiet(), CFG.firstSneezeAt + CFG.sneezeWarn + 1)
+    const first = (type: GameEvent['type']) => r.events.findIndex((e) => e.type === type)
+    expect(first('rainbowSpawn')).toBeGreaterThanOrEqual(0)
+    expect(first('panSpawn')).toBeGreaterThanOrEqual(0)
+    expect(first('sneeze')).toBeGreaterThanOrEqual(0)
+    expect(CFG.firstRainbowAt).toBeLessThan(CFG.rainbowEvery)
+    expect(CFG.firstSneezeAt).toBeLessThan(CFG.sneezeMin)
   })
 })

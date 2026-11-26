@@ -125,6 +125,24 @@ export const EN: Strings = {
   perSec: '/s',
   levelShort: 'Lv',
   you: 'YOU',
+  controls: { move: 'Move', or: 'or', drag: 'Drag to move' },
+  loading: 'Loading…',
+  missions: {
+    title: 'MISSIONS',
+    text: (m: { kind: string; goal: number; min: number }): string => {
+      switch (m.kind) {
+        case 'deliver': return `Bring home ${m.goal} eggs`
+        case 'rare': return `Bring a ${EN.rarity[m.min as Rarity]}+ egg`
+        case 'streak': return `${m.goal} in a row, no waking`
+        case 'steal': return 'Steal a rival’s baby'
+        case 'rainbow': return 'Bring the rainbow egg'
+        case 'merge': return 'Merge 3 babies'
+        default: return `Grab ${m.goal} sneeze coins`
+      }
+    },
+    done: (coins: number) => `Mission done! +${coins.toLocaleString('en-US')} 🪙`,
+  },
+  botNames: ['Tigress', 'MiniMax', 'Zoe', 'Turbo', 'Pipsqueak', 'Cloudy', 'Flash'],
   titles: ['Rookie Mouse', 'Shadow Paw', 'Silent Breeze', 'Golden Fingers', 'Dragon Whisperer'],
   wardrobe: {
     title: 'Wardrobe',

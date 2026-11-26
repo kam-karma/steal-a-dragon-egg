@@ -14,6 +14,7 @@ export function resetIfAsked(): void {
     window.localStorage.removeItem('ue.log')
     window.localStorage.removeItem('ue.wardrobe')
     window.localStorage.removeItem('ue.ads')
+    window.localStorage.removeItem('ue.missions')
   } catch {
     // Storage blocked: nothing to reset.
   }

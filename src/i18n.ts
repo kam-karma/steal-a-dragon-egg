@@ -11,7 +11,7 @@ export function levelTitle(level: number): string {
   return T.titles[Math.min(T.titles.length - 1, Math.floor(level / 5))]
 }
 
-/** The player is shown as "YOU" / "SEN"; bots by their names. */
-export function displayName(actor: { readonly isBot: boolean; readonly name: string }): string {
-  return actor.isBot ? actor.name : T.you
+/** The player is shown as "YOU" / "SEN"; bots by a name in the player's language, marked 🤖. */
+export function displayName(actor: { readonly isBot: boolean; readonly id: number; readonly name: string }): string {
+  return actor.isBot ? `🤖 ${T.botNames[(actor.id - 1) % T.botNames.length]}` : T.you
 }

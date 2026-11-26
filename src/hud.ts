@@ -4,7 +4,7 @@ import { incomePerSecond } from './sim/nests'
 import type { GameState } from './sim/types'
 
 export interface Hud {
-  readonly showStart: (onPlay: () => void) => void
+  readonly showLoading: () => () => void
   readonly update: (state: GameState, player: number) => void
   readonly toast: (text: string, tone?: 'good' | 'bad' | 'info') => void
   readonly floater: (x: number, y: number, text: string, color: string) => void
@@ -101,27 +101,14 @@ export function createHud(root: HTMLElement): Hud {
     hintBox.classList.toggle('show', text !== null)
   }
 
-  function showStart(onPlay: () => void): void {
-    const s = el(
-      'div',
-      'start',
-      root,
-      `<img class="logo" src="./ui/logo.webp" alt="${T.start.title}" draggable="false">
-       <div class="steps">
-         <div>${icon('rainbowEgg', 'stepic')}<b>1</b>${T.start.step1}</div>
-         <div>${icon('nest', 'stepic')}<b>2</b>${T.start.step2}</div>
-         <div>${icon('boots', 'stepic')}<b>3</b>${T.start.step3}</div>
-       </div>
-       <button class="play">${T.start.play}</button>`,
-    )
-    s.style.backgroundImage = "url('./ui/keyart.webp')"
-    const btn = s.querySelector('.play')
-    btn?.addEventListener('pointerdown', (e) => {
-      e.stopPropagation()
-      s.remove()
-      onPlay()
-    })
+  /** Logo while the models load; `done` fades it away and the player is already in the game. */
+  function showLoading(): () => void {
+    const s = el('div', 'loading', root, `<img class="logo" src="./ui/logo.webp" alt="${T.start.title}" draggable="false"><div class="dots">${T.loading}</div>`)
+    return () => {
+      s.classList.add('out')
+      window.setTimeout(() => s.remove(), 600)
+    }
   }
 
-  return { showStart, update, toast, floater, hint, onMute: (fn) => (muteFn = fn) }
+  return { showLoading, update, toast, floater, hint, onMute: (fn) => (muteFn = fn) }
 }

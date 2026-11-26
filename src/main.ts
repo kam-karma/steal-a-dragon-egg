@@ -11,6 +11,9 @@ import { setBabyTemplate, setEggTemplate } from './render/eggMesh'
 import { createOffersUi } from './offersUi'
 import { createWardrobeUi } from './wardrobeUi'
 import { createDirector } from './director'
+import { createMissionsUi } from './missionsUi'
+import { createMusic } from './music'
+import { type ControlsHint, showControlsHint } from './controlsHint'
 import { createHud } from './hud'
 import { createPanels } from './hudPanels'
 import { LANG, T } from './i18n'
@@ -83,8 +86,10 @@ void Promise.all([loadModel('yuva'), loadModel('bayrak')])
 const pickupsView = createPickupsView(stage.scene)
 const fx = createParticles(stage.scene)
 const hud = createHud(document.body)
+const hideLoading = hud.showLoading()
 const sfx = createSfx()
 hud.onMute(sfx.toggleMute)
+const music = createMusic(sfx.bus)
 
 // Ads pause the game and mute it while they play (Poki rule).
 let adPaused = false
@@ -98,6 +103,15 @@ const ads = createAds(
     sfx.setPaused(false)
   },
 )
+
+// Browsers only let sound start from a real gesture (on phones: when the finger lifts, not when
+// it lands). With no PLAY button, keep asking on every gesture until the audio is running.
+const AUDIO_GESTURES = ['pointerup', 'touchend', 'keydown'] as const
+function unlockAudio(): void {
+  if (adPaused || !sfx.unlock()) return
+  AUDIO_GESTURES.forEach((t) => window.removeEventListener(t, unlockAudio, true))
+}
+AUDIO_GESTURES.forEach((t) => window.addEventListener(t, unlockAudio, { capture: true, passive: true }))
 
 // Player actions (HUD buttons, keys) wait here for the next simulation step.
 let pending: Action[] = []
@@ -140,7 +154,7 @@ void Promise.all([
     .catch(() => undefined),
 ]).then(() => {
   dressEveryone()
-  ads.loaded()
+  startGame()
 })
 loadModel('yavru')
   .then((g) => {
@@ -174,13 +188,31 @@ function toScreen(v: THREE.Vector3): { x: number; y: number } {
 }
 
 let started = false
+let controls: ControlsHint | null = null
 let shake = 0
+
+/** No title screen: once the thieves are loaded the player is in the cave, with the controls shown. */
+function startGame(): void {
+  if (started) return
+  started = true
+  hideLoading()
+  ads.gameplayStart()
+  director.begin()
+  controls = showControlsHint(document.body, window.matchMedia('(pointer: coarse)').matches)
+}
 const input = createMoveInput(
   canvas,
   () => toScreen(new THREE.Vector3(state.actors[PLAYER_ID].pos.x, 1, state.actors[PLAYER_ID].pos.z)),
   () => sfx.unlock(),
   () => queue({ type: 'usePan' }),
 )
+const missions = createMissionsUi(document.querySelector<HTMLElement>('.status') ?? document.body, {
+  pay: (coins, xp) => queue({ type: 'bonus', coins, xp }),
+  celebrate: (text) => {
+    hud.toast(text, 'good')
+    sfx.fanfare()
+  },
+})
 const director = createDirector({ hud, panels, sfx, fx, hoard, dragon, toScreen, layout, shake: (s) => (shake = Math.max(shake, s)) })
 
 const camPos = new THREE.Vector3(0, 18, 40)
@@ -236,7 +268,7 @@ const fireDir = new THREE.Vector3()
 
 function simulate(dt: number): void {
   if (adPaused) return
-  // Nothing runs behind the start screen: timers and playtest seconds start at OYNA.
+  // Nothing runs behind the loading screen: timers and playtest seconds start with the game.
   if (!started) return
   const move = input.read()
   acc += dt
@@ -246,6 +278,7 @@ function simulate(dt: number): void {
     prevPos = state.actors.map((a) => a.pos)
     const r = stepGame(state, layout, action === undefined ? move : { ...move, action }, FIXED)
     state = r.state
+    missions.events(r.events)
     r.events.forEach((e) => {
       director.event(e, state)
       log(e, state.time)
@@ -273,6 +306,7 @@ function frame(now: number): void {
     fx.fire(fireFrom, fireDir, flat)
   }
   director.tick(dt, time, state)
+  music.setMode(state.dragon.mode === 'wake' || state.dragon.mode === 'hunt' ? 'chase' : 'calm')
   if (started) offers.tick(state, layout, state.time)
   const nemesis = nemesisOf(state.nemesisCounts)
   // The simulation steps at 60 Hz; screens run at 60-144 Hz. Drawing between the last two
@@ -291,6 +325,15 @@ function frame(now: number): void {
   updateGuide(time)
   updateCamera(dt, drawn[PLAYER_ID].pos)
   const me = drawn[PLAYER_ID].pos
+  const home = layout.nests[state.actors[PLAYER_ID].nest]
+  if (controls !== null) {
+    const head = toScreen(new THREE.Vector3(me.x, 2.2, me.z))
+    controls.follow(head.x, head.y)
+    if (Math.hypot(me.x - home.x, me.z - home.z) > 4) {
+      controls.hide()
+      controls = null
+    }
+  }
   fadePillars(cave.pillars, stage.camera.position, new THREE.Vector3(me.x, 1, me.z), dt)
   cave.fx.update(time)
   hud.update(state, PLAYER_ID)
@@ -299,13 +342,9 @@ function frame(now: number): void {
   requestAnimationFrame(frame)
 }
 
-hud.showStart(() => {
-  started = true
-  ads.gameplayStart()
-  sfx.unlock()
-  director.begin()
-})
 requestAnimationFrame(frame)
+// If a model never arrives, play anyway with the stand-ins.
+window.setTimeout(startGame, 12_000)
 
 // Playtest mode (?test=1): a small button to download the event log.
 if (new URLSearchParams(window.location.search).has('test')) {
@@ -342,5 +381,11 @@ if (import.meta.env.DEV) {
     act: queue,
     offers,
     grant: (reward: Reward) => queue({ type: 'grant', reward }),
+    /** Renders one frame right now and returns it as a PNG (store covers come from real renders). */
+    snap: (): string => {
+      stage.render()
+      return canvas.toDataURL('image/png')
+    },
+    resize: () => stage.resize(),
   }
 }

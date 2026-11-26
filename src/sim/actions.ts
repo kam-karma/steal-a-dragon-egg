@@ -141,6 +141,10 @@ export function applyAction(state: GameState, layout: Layout, actorId: number, a
     const paid = spend(state, a, action.amount, (o) => o)
     return paid === null ? same : { state: paid, events: [] }
   }
+  if (action.type === 'bonus') {
+    const ok = [action.coins, action.xp].every((v) => Number.isFinite(v) && v >= 0)
+    return ok ? { state: withActor(state, actorId, (o) => ({ ...o, coins: o.coins + action.coins, xp: o.xp + action.xp })), events: [] } : same
+  }
   if (action.type === 'grant') {
     const s = grant(state, a, action.reward)
     return s === null ? same : { state: s, events: [{ type: 'reward', actor: actorId, reward: action.reward }] }

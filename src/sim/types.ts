@@ -200,6 +200,8 @@ export type Action =
   | { readonly type: 'grant'; readonly reward: Reward }
   /** Gold spent outside the simulation (wardrobe). Works anywhere. */
   | { readonly type: 'spend'; readonly amount: number }
+  /** Gold and XP paid for a finished mission. Works anywhere. */
+  | { readonly type: 'bonus'; readonly coins: number; readonly xp: number }
 
 export type GameEvent =
   | { readonly type: 'jingle'; readonly actor: number; readonly pos: Vec }

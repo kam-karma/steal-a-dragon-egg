@@ -85,19 +85,33 @@ button { font-family: inherit; }
 .joy.on { display: block; }
 .joy-knob { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; border-radius: 50%; background: var(--btn); box-shadow: 0 0 0 3px var(--ink), inset 0 -5px 0 rgba(0,0,0,.25); transform: translate(-50%, -50%); }
 
-/* Title screen (background image is set from hud.ts so the path stays relative to the page) */
-.start { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: #150d22 center / cover no-repeat; }
-.start::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 35%, rgba(20,8,40,.1), rgba(20,8,40,.78)); }
-.start > * { position: relative; }
-.logo { width: min(560px, 82vw, 80vh); filter: drop-shadow(0 10px 0 rgba(0,0,0,.35)); animation: logoin 0.7s cubic-bezier(.3,1.5,.5,1) both, float 4s ease-in-out 0.7s infinite; }
+/* Loading screen: logo only, fades into the game */
+.loading { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: radial-gradient(ellipse at 50% 40%, #3a1f63, #150d22 70%); transition: opacity 0.6s; }
+.loading.out { opacity: 0; pointer-events: none; }
+.logo { width: min(560px, 82vw, 70vh); filter: drop-shadow(0 10px 0 rgba(0,0,0,.35)); animation: logoin 0.7s cubic-bezier(.3,1.5,.5,1) both, float 4s ease-in-out 0.7s infinite; }
 @keyframes logoin { from { transform: scale(0.4) translateY(-40px); opacity: 0; } }
 @keyframes float { 50% { transform: translateY(-8px); } }
-.steps { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
-.steps div { position: relative; background: var(--panel-bg); box-shadow: var(--rim); border-radius: 18px; padding: 10px 14px 12px; font-size: 17px; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 140px; text-shadow: 0 2px 0 var(--ink); }
-.steps b { position: absolute; top: -10px; left: -10px; width: 30px; height: 30px; border-radius: 50%; background: var(--btn); color: #fff; text-shadow: var(--stroke); display: grid; place-items: center; font-weight: 400; box-shadow: 0 0 0 3px var(--ink); }
-.stepic { width: 64px; height: 64px; filter: drop-shadow(0 3px 0 rgba(0,0,0,.35)); }
-.play { font-size: 40px; padding: 12px 74px 16px; border-radius: 24px; border: none; background: var(--btn); color: #fff; text-shadow: var(--stroke); box-shadow: 0 0 0 4px var(--ink), inset 0 -8px 0 rgba(140, 50, 0, .45), inset 0 4px 0 rgba(255,255,255,.5), 0 9px 0 rgba(0,0,0,.4), 0 0 40px rgba(255, 190, 60, .45); cursor: pointer; animation: pulse 1.1s infinite; }
+.dots { font-size: 22px; text-shadow: var(--stroke); animation: blink 1.2s ease-in-out infinite; }
+@keyframes blink { 50% { opacity: .45; } }
 @keyframes pulse { 50% { transform: scale(1.06); } }
+
+/* Controls overlay: shown above the player until they walk away from the nest */
+.controls { position: absolute; left: 50%; top: 41%; transform: translate(-50%, calc(-100% - 58px)); display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; animation: fadein 0.5s ease-out backwards; transition: opacity 0.5s; }
+@keyframes fadein { from { opacity: 0; } }
+.controls.out { opacity: 0; }
+.controls .sets { display: flex; align-items: center; gap: 14px; }
+.controls i { font-style: normal; font-size: 18px; text-shadow: var(--stroke); }
+.controls span { font-size: 24px; text-shadow: var(--stroke); }
+.controls .keys { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.controls .keys div { display: flex; gap: 4px; }
+.controls kbd { width: 44px; height: 44px; display: grid; place-items: center; font-family: inherit; font-size: 22px; color: var(--ink); background: linear-gradient(#fff, #e6dcf5); border-radius: 10px; box-shadow: 0 0 0 3px var(--ink), inset 0 -5px 0 rgba(80, 40, 140, .3); animation: keytap 1.6s ease-in-out infinite; }
+.controls .keys div:first-child kbd { animation-delay: 0s; }
+.controls .keys div:last-child kbd:nth-child(1) { animation-delay: .4s; }
+.controls .keys div:last-child kbd:nth-child(2) { animation-delay: .8s; }
+.controls .keys div:last-child kbd:nth-child(3) { animation-delay: 1.2s; }
+@keyframes keytap { 0%, 30%, 100% { transform: translateY(0); } 15% { transform: translateY(4px); box-shadow: 0 0 0 3px var(--ink), inset 0 -2px 0 rgba(80, 40, 140, .3); } }
+.controls .drag { font-size: 64px; line-height: 1; animation: drag 1.6s ease-in-out infinite; filter: drop-shadow(0 3px 0 rgba(0,0,0,.4)); }
+@keyframes drag { 0%, 100% { transform: translate(-30px, 10px); } 50% { transform: translate(30px, -20px); } }
 
 /* Status strip under the purse */
 .ui2 { pointer-events: none; }
@@ -108,6 +122,17 @@ button { font-family: inherit; }
 .xpfill { height: 100%; width: 0; background: linear-gradient(90deg, var(--teal), #b46bff); box-shadow: inset 0 3px 0 rgba(255,255,255,.35); }
 .buffs { display: flex; flex-direction: column; gap: 3px; font-size: 15px; text-shadow: var(--stroke); }
 .buffs div { display: flex; align-items: center; gap: 6px; }
+
+/* Missions card under the level bar */
+.missions { margin-top: 4px; width: 230px; padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 5px; background: var(--panel-bg); box-shadow: var(--rim); border-radius: 16px; }
+.missions.flash { animation: mflash 0.9s ease-out; }
+@keyframes mflash { 0% { transform: scale(1.08); box-shadow: var(--rim), 0 0 28px rgba(255, 214, 90, .9); } }
+.mhead { font-size: 14px; letter-spacing: 1px; color: var(--gold, #ffd34d); text-shadow: var(--stroke); }
+.mrow { position: relative; display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 9px; background: rgba(10, 4, 20, .55); overflow: hidden; font-size: 14px; text-shadow: 0 2px 0 var(--ink); }
+.mrow b { font-weight: 400; font-size: 16px; z-index: 1; }
+.mrow span { flex: 1; z-index: 1; line-height: 1.1; }
+.mrow em { font-style: normal; font-size: 13px; opacity: .9; z-index: 1; }
+.mrow i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, rgba(80, 220, 160, .35), rgba(80, 220, 160, .15)); transition: width .4s; }
 .buffs b { color: var(--gold); font-weight: 400; }
 .bic { width: 30px; height: 30px; flex: none; filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
 .tic { width: 42px; height: 42px; flex: none; filter: drop-shadow(0 3px 0 rgba(0,0,0,.35)); }
@@ -165,6 +190,11 @@ button { font-family: inherit; }
 .oclose { width: 34px; height: 34px; border-radius: 10px; border: none; background: rgba(255,255,255,.15); color: #fff; cursor: pointer; flex: none; }
 
 @media (max-width: 700px) {
+  .missions { width: 168px; padding: 6px 7px 7px; gap: 3px; }
+  .mrow { font-size: 11px; padding: 3px 5px; }
+  .mrow b { font-size: 13px; }
+  .mrow em { font-size: 10px; }
+  .mhead { font-size: 11px; }
   .meter { top: 4px; transform: translateX(-50%) scale(0.72); transform-origin: top center; }
   .board { display: none; }
   .status { top: 128px; }
@@ -189,17 +219,13 @@ button { font-family: inherit; }
   .actic { width: 62px; height: 62px; }
   .offer { bottom: 200px; flex-wrap: wrap; }
   .offer .otitle, .offer .odesc { white-space: normal; }
-  .steps div { min-width: 100px; font-size: 14px; }
-  .stepic { width: 46px; height: 46px; }
-  .play { font-size: 32px; padding: 10px 50px 14px; }
   .whead { font-size: 22px; }
 }
 .adplay { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #fff; color: #2a7dff; font-size: 11px; text-shadow: none; box-shadow: 0 0 0 2px var(--ink); flex: none; }
 
-/* Short landscape frames (portal iframes are often ~950x530): keep the PLAY button on screen. */
+/* Short landscape frames (portal iframes are often ~950x530) */
 @media (max-height: 620px) {
-  .start { gap: 10px; }
-  .steps div { min-width: 110px; font-size: 14px; padding: 8px 12px 10px; }
-  .stepic { width: 42px; height: 42px; }
-  .play { font-size: 30px; padding: 8px 52px 12px; }
+  .missions { width: 190px; padding: 5px 7px 6px; gap: 3px; }
+  .mrow { font-size: 12px; padding: 2px 5px; }
+  .controls kbd { width: 36px; height: 36px; font-size: 18px; }
 }

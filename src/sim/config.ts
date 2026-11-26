@@ -50,6 +50,8 @@ export const CFG = {
   raidPatience: 18,
   /** Bots are a bit sneakier than kids, so the player is usually the one who wakes it. */
   botNoiseFactor: 0.65,
+  /** Bots make no noise for this long after the game opens: the first egg run is calm. */
+  botQuietTime: 40,
   botSpeed: 0.82,
   grudgeTime: 90,
 
@@ -72,8 +74,8 @@ export const CFG = {
   panNoise: 40,
   panCooldown: 20,
   panEvery: 45,
-  /** The first pan shows up at minute 3, once the kid knows the basics. */
-  firstPanAt: 180,
+  /** The first pan shows up once the kid knows the basics (about two egg runs in). */
+  firstPanAt: 100,
   bootsTime: 180,
   bootsCost: 500,
   totemTime: 60,
@@ -83,7 +85,9 @@ export const CFG = {
   gold2xMax: 1_800,
   lullabyTime: 8,
 
-  // Happenings
+  // Happenings: the first of each comes early so the opening minutes have surprises
+  firstRainbowAt: 75,
+  firstSneezeAt: 150,
   rainbowEvery: 240,
   rainbowWarn: 10,
   sneezeMin: 300,

@@ -16,9 +16,12 @@ export interface NoiseStep {
 
 /**
  * Adds this frame's noise per actor, or lets it fade when the cave is quiet.
+ * Bots are not heard during the calm start (CFG.botQuietTime).
  * Shares are scaled with the total so "who made it" stays proportional.
  */
-export function accumulate(state: GameState, added: readonly number[], dt: number): NoiseStep {
+export function accumulate(state: GameState, added0: readonly number[], dt: number): NoiseStep {
+  const calm = state.time < CFG.botQuietTime
+  const added = calm ? added0.map((v, i) => (state.actors[i]?.isBot === true ? 0 : v)) : added0
   const sum = added.reduce((s, v) => s + v, 0)
   const shares = state.actors.map((_, i) => (state.noiseShare[i] ?? 0) + (added[i] ?? 0))
   const raw = sum > 0 ? state.noise + sum : state.noise - CFG.noiseDecay * dt

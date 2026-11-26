@@ -63,7 +63,7 @@ export function createGame(layout: Layout, seed: number): GameState {
     nests: actors.map((a) => (a.isBot ? { ...emptyNest(a.id), capacityLevel: 2 as const } : emptyNest(a.id))),
     noiseShare: actors.map(() => 0),
     pickups: [],
-    happenings: { rainbowIn: CFG.rainbowEvery, rainbowWarned: false, rainbowPos: null, sneezeIn: CFG.sneezeMin, sneezeWarned: false, panIn: CFG.firstPanAt },
+    happenings: { rainbowIn: CFG.firstRainbowAt, rainbowWarned: false, rainbowPos: null, sneezeIn: CFG.firstSneezeAt, sneezeWarned: false, panIn: CFG.firstPanAt },
     nemesisCounts: actors.map(() => 0),
     nextId: eggs.length,
     seed,
@@ -187,5 +187,5 @@ export function stepGame(state0: GameState, layout: Layout, input: PlayerInput, 
     happenings: { ...state.happenings, rainbowPos: f.rainbowPos },
   }
   const hap = stepHappenings(next, layout, dt)
-  return { state: hap.state, events: [...acted.events, ...f.events, ...hap.events, ...levelUps(state, hap.state)] }
+  return { state: hap.state, events: [...acted.events, ...f.events, ...hap.events, ...levelUps(state0, hap.state)] }
 }

@@ -24,7 +24,7 @@ describe('noiseFrom', () => {
 
 describe('accumulate and culprit', () => {
   it('adds per actor and remembers who made it', () => {
-    const r = accumulate(base, [0, 10, 30, 0, 0, 0, 0, 0], 0.1)
+    const r = accumulate({ ...base, time: CFG.botQuietTime }, [0, 10, 30, 0, 0, 0, 0, 0], 0.1)
     expect(r.noise).toBeCloseTo(40, 6)
     expect(culprit(r.noiseShare)).toBe(2)
   })
@@ -79,5 +79,20 @@ describe('silence streak', () => {
     expect(r.state.actors[PLAYER_ID].streak).toBe(6)
     expect(r.state.actors[PLAYER_ID].streakShield).toBe(false)
     expect(r.state.actors[1].streak).toBe(0)
+  })
+})
+
+describe('calm start', () => {
+  const added = base.actors.map((a) => (a.id === 1 ? 10 : 0))
+  it('ignores bot noise for the first seconds so a new player learns the rules in peace', () => {
+    expect(accumulate({ ...base, time: 0 }, added, 1 / 60).noise).toBe(0)
+    expect(accumulate({ ...base, time: CFG.botQuietTime - 1 }, added, 1 / 60).noise).toBe(0)
+  })
+  it('still hears the player during the calm start', () => {
+    const mine = base.actors.map((a) => (a.id === PLAYER_ID ? 10 : 0))
+    expect(accumulate({ ...base, time: 0 }, mine, 1 / 60).noise).toBe(10)
+  })
+  it('hears bots again once the calm start is over', () => {
+    expect(accumulate({ ...base, time: CFG.botQuietTime }, added, 1 / 60).noise).toBe(10)
   })
 })

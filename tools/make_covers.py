@@ -1,7 +1,11 @@
-"""Builds the CrazyGames covers: the title logo over generated key art.
+"""Builds the CrazyGames covers: the title logo over real in-game renders.
 
-Usage: python -I tools/make_covers.py <wide art> <tall art> <logo> <out dir>
-Writes cover_1920x1080.png, cover_800x1200.png and cover_800x800.png (square cut from the wide art).
+The renders come from the game itself (dev hook __game.snap() at 1920x1080, 1000x1500 and 1200x1200),
+so the covers show the actual 3D characters, dragon and cave the player will see.
+
+Usage: python -I tools/make_covers.py <wide> <tall> <square> <logo> <out dir>
+Writes cover_1920x1080.png (logo top-right, clear of the portal's top-left labels),
+cover_800x1200.png and cover_800x800.png (logo top-centre).
 """
 import sys
 from pathlib import Path
@@ -18,24 +22,24 @@ def fill(im: Image.Image, w: int, h: int, focus_y: float = 0.5) -> Image.Image:
     return r.crop((x, y, x + w, y + h))
 
 
-def stamp(bg: Image.Image, logo: Image.Image, width_frac: float, top_frac: float) -> Image.Image:
+def stamp(bg: Image.Image, logo: Image.Image, width_frac: float, top_frac: float, centre_x: float = 0.5) -> Image.Image:
     lw = round(bg.width * width_frac)
     l = logo.resize((lw, round(logo.height * lw / logo.width)), Image.LANCZOS)
     out = bg.convert('RGBA')
-    out.alpha_composite(l, ((bg.width - lw) // 2, round(bg.height * top_frac)))
+    out.alpha_composite(l, (round(bg.width * centre_x - lw / 2), round(bg.height * top_frac)))
     return out.convert('RGB')
 
 
 def main() -> None:
-    wide, tall, logo_path, out = (Path(a) for a in sys.argv[1:5])
+    wide, tall, square, logo_path, out = (Path(a) for a in sys.argv[1:6])
     logo = Image.open(logo_path).convert('RGBA')
-    w = Image.open(wide).convert('RGB')
-    t = Image.open(tall).convert('RGB')
     out.mkdir(parents=True, exist_ok=True)
-    stamp(fill(w, 1920, 1080), logo, 0.40, 0.02).save(out / 'cover_1920x1080.png')
-    stamp(fill(t, 800, 1200, 0.0), logo, 0.82, 0.03).save(out / 'cover_800x1200.png')
-    sq = w.crop(((w.width - w.height) // 2, 0, (w.width + w.height) // 2, w.height))
-    stamp(fill(sq, 800, 800), logo, 0.62, 0.02).save(out / 'cover_800x800.png')
+    w = Image.open(wide).convert('RGB')
+    stamp(fill(w, 1920, 1080), logo, 0.34, 0.03, 0.80).save(out / 'cover_1920x1080.png')
+    t = Image.open(tall).convert('RGB')
+    stamp(fill(t, 800, 1200), logo, 0.86, 0.05).save(out / 'cover_800x1200.png')
+    q = Image.open(square).convert('RGB')
+    stamp(fill(q, 800, 800), logo, 0.56, 0.02).save(out / 'cover_800x800.png')
 
 
 if __name__ == '__main__':
