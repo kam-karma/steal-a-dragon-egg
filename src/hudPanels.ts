@@ -1,8 +1,9 @@
 import { levelTitle, T } from './i18n'
 import { icon, type IconName } from './icons'
-import { CFG } from './sim/config'
-import { levelFromXp, nestCapacity, streakMultiplier, upgradeCost } from './sim/economy'
-import type { Action, GameState, Layout, Rarity } from './sim/types'
+import { createNestPanel } from './nestPanel'
+import { levelFromXp, streakMultiplier } from './sim/economy'
+import { nextUnlock } from './sim/unlocks'
+import type { Action, GameState, Layout } from './sim/types'
 
 export interface Panels {
   readonly update: (state: GameState, player: number, layout: Layout) => void
@@ -17,15 +18,6 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, parent: 
   return e
 }
 
-function button(parent: HTMLElement, label: string, enabled: boolean, onPress: () => void, ic?: IconName): void {
-  const b = el('button', enabled ? 'pbtn' : 'pbtn off', parent)
-  b.innerHTML = `${ic ? icon(ic, 'bic') : ''}<span>${label}</span>`
-  b.addEventListener('pointerdown', (e) => {
-    e.stopPropagation()
-    if (enabled) onPress()
-  })
-}
-
 /** Status strip: silence streak, level bar, active boosts. */
 function createStatus(ui: HTMLElement): (state: GameState, player: number) => void {
   const box = el('div', 'status', ui)
@@ -34,6 +26,7 @@ function createStatus(ui: HTMLElement): (state: GameState, player: number) => vo
   const bar = el('div', 'xpbar', box)
   const fill = el('div', 'xpfill', bar)
   const buffs = el('div', 'buffs', box)
+  const next = el('div', 'nextunlock', box)
   return (state, player) => {
     const me = state.actors[player]
     streak.textContent = me.streak > 0 ? T.streak(streakMultiplier(me.streak).toFixed(1)) : ''
@@ -42,6 +35,8 @@ function createStatus(ui: HTMLElement): (state: GameState, player: number) => vo
     const lo = 25 * lvl * (lvl + 1)
     const hi = 25 * (lvl + 1) * (lvl + 2)
     level.textContent = `${T.levelShort} ${lvl} · ${levelTitle(lvl)}${me.rebirths > 0 ? ` · 👑${me.rebirths}` : ''}`
+    const up = nextUnlock(lvl)
+    next.textContent = up === null ? T.unlocks.all : T.unlocks.next(up.level, T.unlocks.name[up.id])
     fill.style.width = `${((me.xp - lo) / (hi - lo)) * 100}%`
     const it = me.items
     const rows: [IconName, string, number][] = [
@@ -49,71 +44,11 @@ function createStatus(ui: HTMLElement): (state: GameState, player: number) => vo
       ['totem', T.buff.totem, it.totemLeft],
       ['luck', T.buff.luck, it.luckLeft],
       ['gold2x', T.buff.gold2x, it.gold2xLeft],
+      ['boots', T.buff.cloak, it.cloakLeft],
     ]
     const shown = rows.filter(([, , left]) => left > 0).map(([ic, label, left]) => `<div>${icon(ic, 'bic')}${label} <b>${Math.ceil(left)}s</b></div>`)
     if (me.streakShield) shown.push(`<div>${icon('streakShield', 'bic')}${T.buff.shield}</div>`)
     buffs.innerHTML = shown.join('')
-  }
-}
-
-/** The nest panel appears while you stand in your own nest. Rebuilt only when its content changes. */
-function createNestPanel(ui: HTMLElement, onAction: (a: Action) => void): (state: GameState, player: number, layout: Layout) => void {
-  const panel = el('div', 'nestpanel', ui)
-  let key = ''
-  let confirming = false
-  return (state, player, layout) => {
-    const me = state.actors[player]
-    const nest = state.nests[me.nest]
-    const home = layout.nests[me.nest]
-    // Hidden until the first egg is home: a new player only needs to learn the egg run.
-    const atHome = Math.hypot(me.pos.x - home.x, me.pos.z - home.z) < CFG.guardRadius && (nest.babies.length > 0 || nest.hatching.length > 0 || me.coins > 0)
-    panel.style.display = atHome ? 'flex' : 'none'
-    if (!atHome) {
-      confirming = false
-      return
-    }
-    const counts = ([0, 1, 2, 3] as const).map((r) => nest.babies.filter((b) => b.rarity === r).length)
-    const cap = nestCapacity(nest.capacityLevel)
-    const used = nest.babies.length + nest.hatching.filter((h) => !h.insurance).length
-    const coinsBand = Math.floor(me.coins / 100)
-    const next = `${counts.join()}|${cap}|${used}|${coinsBand}|${confirming}|${nest.capacityLevel}`
-    if (next === key) return
-    key = next
-    panel.innerHTML = ''
-    el('div', 'ptitle', panel).innerHTML = `${icon('nest', 'tic')}<span>${T.panel.title}</span><em>${T.panel.capacity(used, cap)}</em>`
-    if (confirming) {
-      el('div', 'pask', panel).textContent = T.panel.rebirthAsk
-      button(panel, T.panel.yes, true, () => {
-        confirming = false
-        onAction({ type: 'rebirth' })
-      })
-      button(panel, T.panel.no, true, () => {
-        confirming = false
-        key = ''
-      })
-      return
-    }
-    counts.forEach((n, r) => {
-      if (n >= CFG.mergeCount) button(panel, T.panel.merge(r as Rarity, n), true, () => onAction({ type: 'merge', rarity: r as Rarity }), 'recover')
-    })
-    if (nest.capacityLevel < 2) {
-      const lvl = nest.capacityLevel as 0 | 1
-      button(panel, T.panel.upgrade(nestCapacity((lvl + 1) as 1 | 2), upgradeCost(lvl)), me.coins >= upgradeCost(lvl), () => onAction({ type: 'upgradeNest' }), 'nest')
-    }
-    button(panel, T.panel.boots, me.coins >= CFG.bootsCost, () => onAction({ type: 'buy', item: 'boots' }), 'boots')
-    button(panel, T.panel.totem, me.coins >= CFG.totemCost, () => onAction({ type: 'buy', item: 'totem' }), 'totem')
-    if (me.coins >= CFG.rebirthCost) {
-      button(
-        panel,
-        T.panel.rebirth,
-        true,
-        () => {
-          confirming = true
-          key = ''
-        },
-        'crown',
-      )
-    }
   }
 }
 
@@ -129,6 +64,13 @@ export function createPanels(root: HTMLElement, onAction: (a: Action) => void): 
     e.stopPropagation()
     onAction({ type: 'usePan' })
   })
+  // Put the egg on your head back (also Q on a keyboard).
+  const drop = el('button', 'actbtn dropbtn', ui)
+  drop.addEventListener('pointerdown', (e) => {
+    e.stopPropagation()
+    onAction({ type: 'dropEgg' })
+  })
+  let dropLabel = ''
   let cardTimer = 0
 
   return {
@@ -138,6 +80,14 @@ export function createPanels(root: HTMLElement, onAction: (a: Action) => void): 
       const me = state.actors[player]
       act.style.display = me.items.pans > 0 ? 'block' : 'none'
       act.classList.toggle('cool', me.items.panCooldown > 0)
+      const canDrop = me.carrying !== null
+      drop.style.display = canDrop ? 'block' : 'none'
+      drop.classList.toggle('cool', me.drops < 1)
+      const label = `${icon('rainbowEgg', 'actic')}<span>${T.action.drop(me.drops)}</span>`
+      if (canDrop && label !== dropLabel) {
+        dropLabel = label
+        drop.innerHTML = label
+      }
     },
     culprit: (name) => {
       card.textContent = T.culprit(name)

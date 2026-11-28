@@ -1,5 +1,6 @@
 import { botIntent } from './bots'
-import { CFG } from './config'
+import { CFG, INCOME } from './config'
+import { nestReach } from './progression'
 import { hasTriple, mergeBabies } from './economy'
 import { eggPos } from './happenings'
 import { stepItems, tryPickupPan } from './items'
@@ -42,7 +43,7 @@ interface Out {
 const emit = (f: Frame, ...e: GameEvent[]): Frame => ({ ...f, events: [...f.events, ...e] })
 
 function inFire(state: GameState, layout: Layout, a: Actor): boolean {
-  if (!state.dragon.fire || a.stunned > 0) return false
+  if (!state.dragon.fire || a.stunned > 0 || a.items.cloakLeft > 0) return false
   const d = Math.hypot(a.pos.x, a.pos.z)
   if (d > CFG.fireRange) return false
   const ang = Math.atan2(a.pos.x, a.pos.z)
@@ -57,7 +58,7 @@ function burn(ctx: StepContext, f: Frame, a: Actor): Out {
   const pos = resolveCollisions(ctx.layout, { x: a.pos.x + (a.pos.x / out) * CFG.burnPush, z: a.pos.z + (a.pos.z / out) * CFG.burnPush })
   const lastDrop =
     dropped !== null
-      ? { rarity: dropped.rarity, rainbow: dropped.rainbow, babyNest: null }
+      ? { rarity: dropped.rarity, rainbow: dropped.rainbow, babyNest: null, eggId: dropped.id }
       : baby !== null
         ? { rarity: baby.rarity, rainbow: false, babyNest: baby.from }
         : a.lastDrop
@@ -90,17 +91,24 @@ function stealOrClaim(ctx: StepContext, f: Frame, a: Actor): Out | null {
   return { frame: emit({ ...f, nests: claim.nests, nextId: f.nextId + 1 }, ...claim.events), actor: claim.actor }
 }
 
-function pickupEgg(ctx: StepContext, f: Frame, a: Actor): Out | null {
-  if (!handsFree(a) || a.stunned > 0) return null
+function pickupEgg(ctx: StepContext, f: Frame, a0: Actor): Out | null {
+  if (!handsFree(a0) || a0.stunned > 0) return null
   // In reach: the rainbow egg first, otherwise the nearest one.
-  const egg = f.eggs
-    .map((e) => ({ e, d: dist(eggPos(e, ctx.state, ctx.layout), a.pos) }))
-    .filter((c) => c.d < CFG.pickupRange)
+  const near = f.eggs.map((e) => ({ e, d: dist(eggPos(e, ctx.state, ctx.layout), a0.pos) })).filter((c) => c.d < CFG.pickupRange)
+  // The egg you just put back stays put until you have walked away from it.
+  const stillNear = a0.ignoreEgg !== null && near.some((c) => c.e.id === a0.ignoreEgg)
+  const a = stillNear || a0.ignoreEgg === null ? a0 : { ...a0, ignoreEgg: null }
+  const egg = near
+    .filter((c) => c.e.id !== a.ignoreEgg)
     .sort((p, q) => Number(q.e.rainbow) - Number(p.e.rainbow) || p.d - q.d)[0]?.e
-  if (egg === undefined) return null
+  if (egg === undefined) return a === a0 ? null : { frame: f, actor: a }
   return {
-    frame: emit({ ...f, eggs: f.eggs.filter((e) => e.id !== egg.id) }, { type: 'pickup', actor: a.id, rarity: egg.rarity, rainbow: egg.rainbow }),
-    actor: { ...a, carrying: egg },
+    frame: emit(
+      { ...f, eggs: f.eggs.filter((e) => e.id !== egg.id) },
+      { type: 'pickup', actor: a.id, rarity: egg.rarity, rainbow: egg.rainbow, ...(egg.chest === true ? { chest: true } : {}) },
+    ),
+    // Once in someone's hands a rain egg or chest no longer runs out: put down again, it stays.
+    actor: { ...a, carrying: egg.expires === undefined ? egg : { ...egg, expires: undefined } },
   }
 }
 
@@ -114,9 +122,32 @@ function botMakeRoom(f: Frame, a: Actor, egg: Egg): Out | null {
   return { frame: { ...f, eggs: [...f.eggs, egg] }, actor: { ...a, carrying: null } }
 }
 
+const CHEST_REWARDS = ['luck', 'gold2x', 'boots', 'totem'] as const
+
+/** A treasure chest brought home: a pile of gold and one free reward; no nest spot used. */
+function openChest(f: Frame, a: Actor, chest: Egg): Out {
+  const coins = Math.round(INCOME[3] * CFG.chestSeconds * CFG.rebirthBonus ** a.rebirths)
+  const reward = CHEST_REWARDS[chest.id % CHEST_REWARDS.length]
+  const it = a.items
+  const items =
+    reward === 'luck'
+      ? { ...it, luckLeft: it.luckLeft + CFG.luckTime }
+      : reward === 'gold2x'
+        ? { ...it, gold2xLeft: Math.min(CFG.gold2xMax, it.gold2xLeft + CFG.gold2xTime) }
+        : reward === 'boots'
+          ? { ...it, bootsLeft: it.bootsLeft + CFG.bootsTime }
+          : { ...it, totemLeft: it.totemLeft + CFG.totemTime }
+  return {
+    frame: emit(f, { type: 'chest', actor: a.id, coins, reward }),
+    actor: { ...a, carrying: null, coins: a.coins + coins, items, xp: a.xp + CFG.xpDeliverBase * 4 },
+  }
+}
+
 function deliver(ctx: StepContext, f0: Frame, a0: Actor, prev: Actor): Out | null {
   const egg = a0.carrying
-  if (egg === null || dist(a0.pos, ctx.layout.nests[a0.nest]) >= CFG.nestRadius) return null
+  const reach = nestReach(f0.nests[a0.nest].capacityLevel)
+  if (egg === null || dist(a0.pos, ctx.layout.nests[a0.nest]) >= reach) return null
+  if (egg.chest === true) return openChest(f0, a0, egg)
   let f = f0
   let a = a0
   if (!canAccept(f.nests[a.nest]) && a.isBot) {
@@ -129,7 +160,7 @@ function deliver(ctx: StepContext, f0: Frame, a0: Actor, prev: Actor): Out | nul
     // Full nest. If a merge would make room, keep the egg so one tap fixes it;
     // otherwise put the egg back on its spot so the child is never stuck holding it.
     if (hasTriple(f.nests[a.nest])) {
-      const arrived = dist(prev.pos, ctx.layout.nests[a.nest]) >= CFG.nestRadius
+      const arrived = dist(prev.pos, ctx.layout.nests[a.nest]) >= reach
       return { frame: arrived ? emit(f, { type: 'nestFull', actor: a.id, canMerge: true }) : f, actor: a }
     }
     return { frame: emit({ ...f, eggs: [...f.eggs, egg] }, { type: 'nestFull', actor: a.id, canMerge: false }), actor: { ...a, carrying: null } }
@@ -142,17 +173,23 @@ function deliver(ctx: StepContext, f0: Frame, a0: Actor, prev: Actor): Out | nul
     regrow: f.regrow.map((r, i) => (i === egg.spot ? CFG.regrowTime : r)),
     rainbowPos: egg.rainbow ? null : f.rainbowPos,
   }
-  const events: GameEvent[] = [{ type: 'deliver', actor: a.id, rarity: egg.rarity, rainbow: egg.rainbow }]
+  const events: GameEvent[] = [
+    { type: 'deliver', actor: a.id, rarity: egg.rarity, rainbow: egg.rainbow, ...(egg.golden === true ? { golden: true } : {}), ...(egg.rain === true ? { rain: true } : {}) },
+  ]
   if (asleep) events.push({ type: 'streak', actor: a.id, streak })
+  const bonus = egg.golden === true ? Math.round(INCOME[egg.rarity] * CFG.goldenSeconds * CFG.rebirthBonus ** a.rebirths) : 0
+  if (bonus > 0) events.push({ type: 'golden', actor: a.id, coins: bonus })
   return {
     frame: emit(frame, ...events),
-    actor: { ...a, carrying: null, streak, xp: a.xp + CFG.xpDeliverBase + CFG.xpDeliverPerRarity * egg.rarity },
+    actor: { ...a, carrying: null, streak, coins: a.coins + bonus, xp: a.xp + CFG.xpDeliverBase + CFG.xpDeliverPerRarity * egg.rarity },
   }
 }
 
 function move(ctx: StepContext, f0: Frame, a0: Actor, roll: number): Out {
   const intent = a0.isBot ? botIntent(ctx.state, ctx.layout, a0, ctx.dt, roll) : { x: ctx.input.x, z: ctx.input.z, brain: null, usePan: false }
-  const pace = a0.isBot ? CFG.botSpeed : 1
+  const peeking = ctx.state.happenings.peekLeft > 0
+  // Bots know the rule: they freeze while the dragon's eye is open.
+  const pace = a0.isBot ? (peeking ? 0 : CFG.botSpeed) : 1
   const moved = moveActor(ctx.layout, a0, intent.x * pace, intent.z * pace, ctx.dt)
   let a: Actor = { ...moved.actor, bot: intent.brain ?? moved.actor.bot, items: stepItems(moved.actor.items, ctx.dt) }
   let f = f0
@@ -170,6 +207,11 @@ function move(ctx: StepContext, f0: Frame, a0: Actor, roll: number): Out {
   if (a.onGold && moved.walked > 0) {
     const added = f.added.map((v, i) => (i === a.id ? v + noiseFrom(a, moved.walked) : v))
     f = emit({ ...f, added }, { type: 'jingle', actor: a.id, pos: a.pos })
+  }
+  if (peeking && moved.walked > 0) {
+    // While it peeks every step counts, gold or stone: as loud as factor × a step on gold.
+    const loud = noiseFrom(a, moved.walked) * (a.onGold ? CFG.peekNoiseFactor - 1 : CFG.peekNoiseFactor)
+    f = { ...f, added: f.added.map((v, i) => (i === a.id ? v + loud : v)) }
   }
   return { frame: f, actor: a }
 }

@@ -15,8 +15,8 @@ function withPan(g: GameState): GameState {
 
 describe('timers', () => {
   it('counts every item timer down to zero', () => {
-    const items = { pans: 1, panCooldown: 5, bootsLeft: 2, totemLeft: 0.5, luckLeft: 10, gold2xLeft: 1 }
-    expect(stepItems(items, 1)).toEqual({ pans: 1, panCooldown: 4, bootsLeft: 1, totemLeft: 0, luckLeft: 9, gold2xLeft: 0 })
+    const items = { pans: 1, panCooldown: 5, bootsLeft: 2, totemLeft: 0.5, luckLeft: 10, gold2xLeft: 1, cloakLeft: 30 }
+    expect(stepItems(items, 1)).toEqual({ pans: 1, panCooldown: 4, bootsLeft: 1, totemLeft: 0, luckLeft: 9, gold2xLeft: 0, cloakLeft: 29 })
   })
 })
 

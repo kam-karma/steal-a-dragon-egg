@@ -38,11 +38,11 @@ export const CFG = {
   regrowTime: 5,
   bots: 7,
   /** While the owner stands this close to their nest, nobody can steal from it. */
-  guardRadius: 5.5,
+  guardRadius: 4.5,
   tagRange: 1.5,
   tagStun: 1.3,
   /** Seconds before the same nest can be robbed again. */
-  stealGap: 60,
+  stealGap: 20,
   /** Seconds between raid plans for one bot. */
   raidCooldown: 45,
   chaseRange: 15,
@@ -64,11 +64,11 @@ export const CFG = {
   shinyMultiplier: 3,
   multiplierCap: 12,
   rebirthBonus: 1.3,
-  /** Tuned by balance/balance.sim.ts: first rebirth ≈ 28 min without ads, ≈ 22 min with ads. */
+  /** First rebirth; later ones cost more (progression.ts rebirthCost). */
   rebirthCost: 1_000_000,
-  capacity: [6, 10, 16] as readonly number[],
-  upgradeCost: [10_000, 80_000] as readonly number[],
   mergeCount: 3,
+  /** Invisibility cloak you get with every crown. */
+  cloakTime: 60,
 
   // Items and rewards
   panNoise: 40,
@@ -96,6 +96,34 @@ export const CFG = {
   sneezeCoins: 20,
   sneezeCoinValue: 30,
   coinTtl: 12,
+  /** From player level 3 the dragon peeks: warn, then a few seconds where any step is loud. */
+  peekLevel: 3,
+  peekEvery: 65,
+  peekWarn: 2,
+  peekTime: 3,
+  /** While it peeks, walking anywhere is this many times as loud as walking on gold. */
+  peekNoiseFactor: 2,
+  /** From player level 6 some regrown eggs are golden: delivering one pays this many seconds of the egg's income. */
+  goldenLevel: 6,
+  goldenOdds: 0.12,
+  goldenSeconds: 240,
+  /** Level 4: egg rain, quiet eggs on the stone ring for a short while. */
+  rainLevel: 4,
+  rainEvery: 150,
+  rainWarn: 3,
+  rainCount: 8,
+  rainTtl: 20,
+  /** Level 8: a heavy, noisy treasure chest on the hoard; home it for gold and a free reward. */
+  chestLevel: 8,
+  chestEvery: 200,
+  chestTtl: 50,
+  chestSeconds: 300,
+  chestSpeedFactor: 0.7,
+  chestNoiseFactor: 2.2,
+  /** Bots leave a new chest alone this long, so the player gets the first go. */
+  chestBotDelay: 15,
+  /** Level 11: the rainbow egg comes twice as often. */
+  showerLevel: 11,
   sneezeRadius: 7,
   sneezePush: 3,
 

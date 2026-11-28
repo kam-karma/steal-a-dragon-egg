@@ -26,6 +26,7 @@ export function createMoveInput(
   playerOnScreen: () => { x: number; y: number },
   onFirst: () => void,
   onAction: () => void = () => undefined,
+  onDrop: () => void = () => undefined,
 ): MoveInput {
   const held = new Set<string>()
   const pad = document.createElement('div')
@@ -55,6 +56,11 @@ export function createMoveInput(
       e.preventDefault()
       wake()
       onAction()
+      return
+    }
+    if (e.code === 'KeyQ' && !e.repeat) {
+      wake()
+      onDrop()
       return
     }
     if (KEYS[e.code] !== undefined) {

@@ -94,12 +94,13 @@ describe('day-1 raid rules', () => {
     expect(stepGame(g, layout, still, 1 / 60).state.actors[PLAYER_ID].stolen).toBeNull()
   })
 
-  it('the same nest cannot be robbed again for 60 s', () => {
+  it('the same nest cannot be robbed again for a short while (CFG.stealGap)', () => {
     let g = setup(far)
-    g = { ...g, time: 100, nests: g.nests.map((n, i) => (i === RIVAL ? { ...n, lastStolenAt: 70 } : n)) }
+    g = { ...g, time: 100, nests: g.nests.map((n, i) => (i === RIVAL ? { ...n, lastStolenAt: 100 - CFG.stealGap + 5 } : n)) }
     g = patch(g, PLAYER_ID, { pos: layout.nests[RIVAL] })
     expect(stepGame(g, layout, still, 1 / 60).state.actors[PLAYER_ID].stolen).toBeNull()
-    const later = { ...g, time: 131 }
+    expect(CFG.stealGap).toBeLessThanOrEqual(20)
+    const later = { ...g, time: 106 }
     expect(stepGame(later, layout, still, 1 / 60).state.actors[PLAYER_ID].stolen).not.toBeNull()
   })
 

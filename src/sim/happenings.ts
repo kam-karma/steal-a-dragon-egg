@@ -1,4 +1,7 @@
 import { CFG } from './config'
+import { expireEggs, rainbowInterval, stepChest, stepRain } from './bonusEvents'
+import { levelFromXp } from './economy'
+import { PLAYER_ID } from './ids'
 import { spawnPan } from './items'
 import { resolveCollisions } from './movement'
 import { nextSeed, seedToUnit } from './rng'
@@ -7,6 +10,7 @@ import type { Actor, Egg, GameEvent, GameState, Layout, Pickup, Vec } from './ty
 
 /** Where an egg lies: its hoard spot, or the rainbow egg's own spot. */
 export function eggPos(e: Egg, state: GameState, layout: Layout): Vec {
+  if (e.pos !== undefined) return e.pos
   if (e.spot >= 0) return layout.spots[e.spot].pos
   return state.happenings.rainbowPos ?? { x: 0, z: CFG.dragonRadius + 1.4 }
 }
@@ -23,7 +27,7 @@ function stepRainbow(state: GameState, dt: number, events: GameEvent[]): GameSta
     return { ...state, happenings: { ...h, rainbowIn, rainbowWarned: true } }
   }
   if (rainbowIn > 0) return { ...state, happenings: { ...h, rainbowIn } }
-  if (rainbowOut(state)) return { ...state, happenings: { ...h, rainbowIn: CFG.rainbowEvery, rainbowWarned: false } }
+  if (rainbowOut(state)) return { ...state, happenings: { ...h, rainbowIn: rainbowInterval(state), rainbowWarned: false } }
   // Right between the dragon's claws, wherever it is facing.
   const pos = polar(CFG.dragonRadius + 1.4, state.dragon.yaw)
   const egg: Egg = { id: state.nextId, spot: -1, rarity: 2, rainbow: true }
@@ -32,7 +36,7 @@ function stepRainbow(state: GameState, dt: number, events: GameEvent[]): GameSta
     ...state,
     eggs: [...state.eggs, egg],
     nextId: state.nextId + 1,
-    happenings: { ...h, rainbowIn: CFG.rainbowEvery, rainbowWarned: false, rainbowPos: pos },
+    happenings: { ...h, rainbowIn: rainbowInterval(state), rainbowWarned: false, rainbowPos: pos },
   }
 }
 
@@ -92,7 +96,28 @@ function collectCoins(state: GameState, events: GameEvent[]): GameState {
   return { ...state, actors, pickups }
 }
 
-/** Timed surprises: the rainbow egg, the sneeze and its coins, pans on the floor. */
+/**
+ * From player level 3 the dragon peeks: a warning, then a few seconds with one eye open
+ * when every step is loud (red light, green light). Only while it sleeps.
+ */
+function stepPeek(state: GameState, dt: number, events: GameEvent[]): GameState {
+  const h = state.happenings
+  const asleep = state.dragon.mode === 'sleep' || state.dragon.mode === 'stir'
+  if (h.peekLeft > 0) {
+    // Woken mid-peek: the peek is over, everybody may run.
+    const peekLeft = asleep ? Math.max(0, h.peekLeft - dt) : 0
+    if (peekLeft === 0) events.push({ type: 'peekEnd' })
+    return { ...state, happenings: { ...h, peekLeft } }
+  }
+  if (!asleep || levelFromXp(state.actors[PLAYER_ID].xp) < CFG.peekLevel) return state
+  const peekIn = h.peekIn - dt
+  if (h.peekIn > CFG.peekWarn && peekIn <= CFG.peekWarn) events.push({ type: 'peekWarn' })
+  if (peekIn > 0) return { ...state, happenings: { ...h, peekIn } }
+  events.push({ type: 'peek' })
+  return { ...state, happenings: { ...h, peekIn: CFG.peekEvery, peekLeft: CFG.peekTime } }
+}
+
+/** Timed surprises: the rainbow egg, the sneeze and its coins, pans on the floor, the dragon peeking. */
 export function stepHappenings(state: GameState, layout: Layout, dt: number): { state: GameState; events: GameEvent[] } {
   const events: GameEvent[] = []
   const ticked = { ...state, happenings: { ...state.happenings, panIn: state.happenings.panIn - dt } }
@@ -104,5 +129,8 @@ export function stepHappenings(state: GameState, layout: Layout, dt: number): { 
   }
   const rainbow = stepRainbow(withPan, dt, events)
   const sneezed = stepSneeze(rainbow, layout, dt, events)
-  return { state: collectCoins(sneezed, events), events }
+  const peeked = stepPeek(sneezed, dt, events)
+  const rained = stepRain(peeked, layout, dt, events)
+  const chested = stepChest(expireEggs(rained), layout, dt, events)
+  return { state: collectCoins(chested, events), events }
 }

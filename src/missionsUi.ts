@@ -1,9 +1,10 @@
 import { T } from './i18n'
+import { foldable } from './smallScreen'
 import { type Mission, type MissionKind, missionReward, missionsFrom, type Missions, stepMissions } from './meta/missions'
 import type { GameEvent } from './sim/types'
 
 const KEY = 'ue.missions'
-const ICON: Record<MissionKind, string> = { deliver: '🥚', rare: '💎', streak: '🤫', steal: '🦝', rainbow: '🌈', merge: '✨', coins: '🪙' }
+const ICON: Record<MissionKind, string> = { deliver: '🥚', rare: '💎', streak: '🤫', steal: '🦝', rainbow: '🌈', merge: '✨', coins: '🪙', golden: '🌟', rain: '🌧️', chest: '🧰' }
 const XP_PER_MISSION = 25
 
 function load(): Missions {
@@ -25,7 +26,7 @@ function save(m: Missions): void {
 
 export interface MissionsUi {
   /** Feeds one frame's simulation events; finished missions pay out through `pay`. */
-  readonly events: (events: readonly GameEvent[]) => void
+  readonly events: (events: readonly GameEvent[], level: number) => void
 }
 
 interface Deps {
@@ -39,6 +40,7 @@ export function createMissionsUi(parent: HTMLElement, deps: Deps): MissionsUi {
   const box = document.createElement('div')
   box.className = 'missions'
   parent.appendChild(box)
+  foldable(box, () => box.querySelector('.mhead'))
 
   function row(m: Mission): string {
     const pct = Math.round((m.done / m.goal) * 100)
@@ -46,15 +48,15 @@ export function createMissionsUi(parent: HTMLElement, deps: Deps): MissionsUi {
   }
 
   function draw(): void {
-    box.innerHTML = `<div class="mhead">${T.missions.title}</div>${missions.list.map(row).join('')}`
+    box.innerHTML = `<div class="mhead">${T.missions.title}<span class="fold">▾</span></div>${missions.list.map(row).join('')}`
   }
   draw()
 
   return {
-    events: (events) => {
+    events: (events, level) => {
       if (events.length === 0) return
       const before = missions
-      const r = stepMissions(missions, events)
+      const r = stepMissions(missions, events, level)
       if (r.missions === before) return
       r.finished.forEach((m, k) => {
         const coins = missionReward(m, before.completed + k)

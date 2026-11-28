@@ -160,6 +160,8 @@ export function applicable(g: GameState, r: Reward): boolean {
       return g.dragon.mode === 'sleep' || g.dragon.mode === 'stir'
     case 'streakShield':
       return !me.streakShield
+    case 'gold2x':
+      return me.items.gold2xLeft < CFG.gold2xMax - 1
     default:
       return true
   }

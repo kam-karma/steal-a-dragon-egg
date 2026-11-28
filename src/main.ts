@@ -11,6 +11,9 @@ import { setBabyTemplate, setEggTemplate } from './render/eggMesh'
 import { createOffersUi } from './offersUi'
 import { createWardrobeUi } from './wardrobeUi'
 import { createDirector } from './director'
+import { createBookUi } from './bookUi'
+import { createCrownShopUi } from './crownShopUi'
+import { showDailyGift } from './dailyUi'
 import { createMissionsUi } from './missionsUi'
 import { createMusic } from './music'
 import { type ControlsHint, showControlsHint } from './controlsHint'
@@ -29,6 +32,7 @@ import { createParticles } from './render/particles'
 import { createPickupsView } from './render/pickupsView'
 import { createStage } from './render/stage'
 import { createThief } from './render/thiefMesh'
+import { levelFromXp } from './sim/economy'
 import { createGame, PLAYER_ID, stepGame } from './sim/game'
 import { eggPos } from './sim/happenings'
 import { nemesisOf } from './sim/raid'
@@ -63,11 +67,19 @@ const dragon: DragonRig = {
     return currentDragon.tune
   },
 }
+// Every crown brings a dragon of a new colour.
+let dragonTheme = -1
+function themeDragon(crowns: number): void {
+  if (crowns === dragonTheme || currentDragon.theme === undefined) return
+  dragonTheme = crowns
+  currentDragon.theme(crowns)
+}
 loadModel('ejderha')
   .then((gltf) => {
     stage.scene.remove(currentDragon.group)
     currentDragon = createDragonTripo(gltf)
     stage.scene.add(currentDragon.group)
+    dragonTheme = -1
   })
   .catch(() => undefined) // keep the hand-built dragon
 // Tripo props replace the stand-in rocks, gold, braziers and crystals as soon as they arrive.
@@ -172,6 +184,7 @@ const log = createSessionLog()
 const offers = createOffersUi(document.body, {
   ads,
   grant: (reward) => queue({ type: 'grant', reward }),
+  buy: (item) => queue({ type: 'buyItem', item }),
   state: () => state,
 })
 
@@ -198,6 +211,14 @@ function startGame(): void {
   hideLoading()
   ads.gameplayStart()
   director.begin()
+  // Today's gift, if one is waiting (a returning player's first sight of the day).
+  showDailyGift(document.body, {
+    give: (r) => {
+      if (r.grant !== undefined) queue({ type: 'grant', reward: r.grant })
+      else queue({ type: 'bonus', coins: r.coins ?? 0, xp: 0, crowns: r.crowns ?? 0, drops: r.drops ?? 0 })
+      sfx.fanfare()
+    },
+  })
   controls = showControlsHint(document.body, window.matchMedia('(pointer: coarse)').matches)
 }
 const input = createMoveInput(
@@ -205,7 +226,16 @@ const input = createMoveInput(
   () => toScreen(new THREE.Vector3(state.actors[PLAYER_ID].pos.x, 1, state.actors[PLAYER_ID].pos.z)),
   () => sfx.unlock(),
   () => queue({ type: 'usePan' }),
+  () => queue({ type: 'dropEgg' }),
 )
+const book = createBookUi(document.body, {
+  pay: (coins, crowns) => queue({ type: 'bonus', coins, xp: 0, crowns }),
+  celebrate: (text) => {
+    hud.toast(text, 'good')
+    sfx.shiny()
+  },
+})
+const crownShop = createCrownShopUi(document.body, { state: () => state, buyPerk: (perk) => queue({ type: 'buyPerk', perk }) })
 const missions = createMissionsUi(document.querySelector<HTMLElement>('.status') ?? document.body, {
   pay: (coins, xp) => queue({ type: 'bonus', coins, xp }),
   celebrate: (text) => {
@@ -278,7 +308,8 @@ function simulate(dt: number): void {
     prevPos = state.actors.map((a) => a.pos)
     const r = stepGame(state, layout, action === undefined ? move : { ...move, action }, FIXED)
     state = r.state
-    missions.events(r.events)
+    missions.events(r.events, levelFromXp(state.actors[PLAYER_ID].xp))
+    book.events(r.events)
     r.events.forEach((e) => {
       director.event(e, state)
       log(e, state.time)
@@ -290,12 +321,32 @@ function simulate(dt: number): void {
   }
 }
 
+// A device that cannot hold ~32 fps for 12 s drops to the light mode (no shadows / bloom).
+let perfTime = 0
+let perfFrames = 0
+let slowWindows = 0
+function watchFrameRate(rawDt: number): void {
+  if (stage.low() || !started || document.hidden || rawDt > 0.5) return
+  perfTime += rawDt
+  perfFrames++
+  if (perfTime < 4) return
+  const fps = perfFrames / perfTime
+  slowWindows = fps < 32 ? slowWindows + 1 : 0
+  if (slowWindows >= 3) stage.goLow()
+  perfTime = 0
+  perfFrames = 0
+}
+
 function frame(now: number): void {
-  const dt = Math.min(0.1, (now - last) / 1000)
+  const rawDt = (now - last) / 1000
+  const dt = Math.min(0.1, rawDt)
   last = now
+  watchFrameRate(rawDt)
   time += dt
   simulate(dt)
-  dragon.update(dt, time, { ...state.dragon, noise: state.noise })
+  // While it peeks the dragon shows it: eyes open, head up.
+  const peeking = state.happenings.peekLeft > 0 && (state.dragon.mode === 'sleep' || state.dragon.mode === 'stir')
+  dragon.update(dt, time, { ...state.dragon, mode: peeking ? 'stir' : state.dragon.mode, noise: state.noise })
   if (state.dragon.fire) {
     // Flames leave the snout but follow the burn cone the simulation uses: flat along the
     // dragon's yaw, dipping to the floor at CFG.fireRange. What burns you is what you see.
@@ -306,8 +357,10 @@ function frame(now: number): void {
     fx.fire(fireFrom, fireDir, flat)
   }
   director.tick(dt, time, state)
+  themeDragon(state.actors[PLAYER_ID].rebirths)
   music.setMode(state.dragon.mode === 'wake' || state.dragon.mode === 'hunt' ? 'chase' : 'calm')
   if (started) offers.tick(state, layout, state.time)
+  crownShop.tick(state)
   const nemesis = nemesisOf(state.nemesisCounts)
   // The simulation steps at 60 Hz; screens run at 60-144 Hz. Drawing between the last two
   // steps keeps every thief gliding instead of hitching (no step) and jumping (two steps).

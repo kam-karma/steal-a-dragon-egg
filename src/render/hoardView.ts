@@ -6,8 +6,9 @@ import { eggPos } from '../sim/happenings'
 import { isGuarded } from '../sim/raid'
 import type { GameState, Layout } from '../sim/types'
 import { babyStage } from '../sim/economy'
+import { nestScale } from '../sim/progression'
 import { animateBaby } from './babyRig'
-import { makeBaby, makeBeam, makeEgg } from './eggMesh'
+import { makeBaby, makeBeam, makeChest, makeEgg, makeGoldenEgg } from './eggMesh'
 import { applyFx, matteCopy, prepareMeshes } from './materialFx'
 import { glowTexture } from './textures'
 
@@ -176,18 +177,22 @@ export function createHoardView(scene: THREE.Scene, layout: Layout, colors: read
   motes.position.set(layout.nests[playerNest].x, 0, layout.nests[playerNest].z)
   scene.add(motes)
 
+  // Babies sit in rings: 1 in the middle, then 6, 10, 14, 18 … around it (a big nest holds 40+).
+  const RINGS = [1, 6, 10, 14, 18, 22]
+  const RADII = [0, 0.95, 2.0, 2.8, 3.5, 4.1]
   function slot(k: number): THREE.Vector3 {
-    if (k === 0) return new THREE.Vector3(0, NEST_FLOOR, 0)
-    const ring = k < 7 ? 1 : 2
-    const idx = ring === 1 ? k - 1 : k - 7
-    const n = ring === 1 ? 6 : 10
-    const a = (idx / n) * Math.PI * 2
-    const r = ring === 1 ? 0.95 : 2.6
-    return new THREE.Vector3(Math.sin(a) * r, k < 7 ? NEST_FLOOR : 0.15, Math.cos(a) * r)
+    let ring = 0
+    let first = 0
+    while (ring < RINGS.length - 1 && k >= first + RINGS[ring]) {
+      first += RINGS[ring]
+      ring++
+    }
+    const a = ((k - first) / RINGS[ring]) * Math.PI * 2 + ring * 0.4
+    return new THREE.Vector3(Math.sin(a) * RADII[ring], ring <= 1 ? NEST_FLOOR : 0.15, Math.cos(a) * RADII[ring])
   }
 
   function sync(state: GameState, time: number): void {
-    const guarded = isGuarded(layout, state.actors, playerNest)
+    const guarded = isGuarded(layout, state.actors, playerNest, state.nests)
     motes.visible = guarded && state.nests[playerNest].babies.length > 0
     if (motes.visible) animateMotes(motes, time)
     const live = new Set(state.eggs.map((e) => e.id))
@@ -200,7 +205,7 @@ export function createHoardView(scene: THREE.Scene, layout: Layout, colors: read
     for (const egg of state.eggs) {
       let mesh = eggMeshes.get(egg.id)
       if (mesh === undefined) {
-        mesh = makeEgg(egg.rarity, egg.rainbow)
+        mesh = egg.chest === true ? makeChest() : egg.golden === true ? makeGoldenEgg(egg.rarity) : makeEgg(egg.rarity, egg.rainbow)
         if (egg.rainbow) mesh.add(makeBeam())
         const p = eggPos(egg, state, layout)
         mesh.position.set(p.x, 0.75, p.z)
@@ -209,7 +214,14 @@ export function createHoardView(scene: THREE.Scene, layout: Layout, colors: read
         eggMeshes.set(egg.id, mesh)
       }
       const grow = Math.min(1, mesh.scale.x + 0.06)
-      mesh.scale.setScalar(grow * (1 + egg.rarity * 0.08) * (egg.rainbow ? 1.5 : 1))
+      if (egg.chest === true) {
+        // A chest sits on the gold and glints; it does not float like an egg.
+        mesh.scale.setScalar(grow * 1.3)
+        mesh.position.y = 0.45
+        mesh.rotation.y = egg.id
+        continue
+      }
+      mesh.scale.setScalar(grow * (1 + egg.rarity * 0.08) * (egg.rainbow ? 1.5 : egg.golden === true ? 1.25 : 1))
       mesh.position.y = 0.75 + Math.sin(time * 2 + egg.id) * 0.08
       mesh.rotation.y = time * 0.6 + egg.id
     }
@@ -256,8 +268,18 @@ export function createHoardView(scene: THREE.Scene, layout: Layout, colors: read
         if (sparkle !== undefined) sparkle.rotation.y = time * 2
         b.rotation.y = Math.atan2(-b.position.x, -b.position.z) + Math.PI + Math.sin(time * 0.5 + k) * 0.5
       })
+      // The nest itself grows with its size upgrades.
+      const model = view.group.getObjectByName('nestModel')
+      if (model !== undefined) {
+        const base = model.userData.base as THREE.Vector3
+        const s = nestScale(n.capacityLevel)
+        model.scale.set(base.x * s, base.y * (1 + 0.06 * n.capacityLevel), base.z * s)
+      }
       const flag = view.group.getObjectByName('flag')
-      if (flag !== undefined) flag.rotation.y = Math.sin(time * 1.4 + i) * 0.06
+      if (flag !== undefined) {
+        flag.rotation.y = Math.sin(time * 1.4 + i) * 0.06
+        if (model !== undefined) flag.position.x = -CFG.nestRadius * nestScale(n.capacityLevel) - 0.3
+      }
       const flame = view.group.getObjectByName('flame')
       if (flame !== undefined) flame.scale.set(1, 1 + Math.sin(time * 17 + i) * 0.15, 1)
     })
@@ -288,6 +310,8 @@ export function createHoardView(scene: THREE.Scene, layout: Layout, colors: read
       view.group.children.filter((c) => c.userData.proc === true).forEach((c) => view.group.remove(c))
       const nest = nestTpl.clone(true)
       nest.userData.proc = false
+      nest.name = 'nestModel'
+      nest.userData.base = nest.scale.clone()
       view.group.add(nest)
       const banner = bannerTpl.clone(true)
       banner.traverse((o) => {

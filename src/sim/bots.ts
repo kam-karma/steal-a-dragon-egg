@@ -7,7 +7,7 @@ import { hasTriple } from './economy'
 import { PLAYER_ID } from './ids'
 import { rainbowTarget, shouldBangPan, stepOops, updateGrudge, wantsRainbow } from './botPersonality'
 import { dist, nestAngle, polar } from './world'
-import type { Actor, BotBrain, GameState, Layout, Vec } from './types'
+import type { Actor, BotBrain, Egg, GameState, Layout, Vec } from './types'
 
 export interface BotIntent {
   readonly x: number
@@ -39,7 +39,9 @@ function hidingSpot(layout: Layout, p: Vec): Vec {
 
 function pickEgg(state: GameState, layout: Layout, a: Actor, roll: number): number | null {
   const taken = new Set(state.actors.filter((o) => o.id !== a.id && o.bot?.targetEgg != null).map((o) => o.bot?.targetEgg))
-  const free = state.eggs.filter((e) => !taken.has(e.id))
+  // A fresh treasure chest is the player's moment: bots only go for one that has lain a while.
+  const fresh = (e: Egg): boolean => e.chest === true && e.expires !== undefined && state.time < e.expires - CFG.chestTtl + CFG.chestBotDelay
+  const free = state.eggs.filter((e) => !taken.has(e.id) && !fresh(e))
   if (free.length === 0) return null
   const greedy = a.bot?.clumsy ?? 0.5
   const scored = free.map((e) => ({
@@ -143,7 +145,7 @@ function decide(state: GameState, layout: Layout, a: Actor, dt: number, roll: nu
   if (raid.raidNest !== null) {
     const nest = layout.nests[raid.raidNest]
     // Lurk just outside a guarded nest and wait for the owner to walk away.
-    const lurk = isGuarded(layout, state.actors, raid.raidNest) && dist(a.pos, nest) < CFG.guardRadius + 2.5
+    const lurk = isGuarded(layout, state.actors, raid.raidNest, state.nests) && dist(a.pos, nest) < CFG.guardRadius + 2.5
     const go = lurk ? { x: 0, z: 0 } : steer(layout, a.pos, nest)
     return { ...go, brain: { ...raid, goal: 'raid', target: nest } }
   }

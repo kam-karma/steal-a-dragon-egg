@@ -1,3 +1,8 @@
+import type { NestTrack, Perk, StoreItem } from './progression'
+
+/** Permanent crown-shop levels. */
+export type Perks = Readonly<Record<Perk, number>>
+
 export interface Vec {
   readonly x: number
   readonly z: number
@@ -32,6 +37,14 @@ export interface Egg {
   readonly spot: number
   readonly rarity: Rarity
   readonly rainbow: boolean
+  /** Golden egg (from player level 6): pays a pile of gold on delivery. */
+  readonly golden?: boolean
+  /** Free eggs (rain, chest) lie at their own spot (spot = -2) and vanish at `expires` (state.time). */
+  readonly pos?: Vec
+  readonly expires?: number
+  readonly rain?: boolean
+  /** Treasure chest: heavy and noisy; delivered it pays gold and a free reward. */
+  readonly chest?: boolean
 }
 
 export interface Baby {
@@ -52,13 +65,20 @@ export interface Hatching {
   readonly insurance: boolean
 }
 
-export type CapacityLevel = 0 | 1 | 2
+/** Nest size level, 0..5 (see progression.ts). */
+export type CapacityLevel = number
 
 export interface Nest {
   readonly owner: number
   readonly hatching: readonly Hatching[]
   readonly babies: readonly Baby[]
   readonly capacityLevel: CapacityLevel
+  /** Nursery level: babies grow up faster. */
+  readonly nursery: number
+  /** Vault level: +20% gold per level. */
+  readonly vault: number
+  /** Extra spots from the "Bigger Nest" crown perk (kept through rebirths). */
+  readonly perkSlots: number
   /** state.time of the last theft from this nest (-Infinity = never). */
   readonly lastStolenAt: number
 }
@@ -82,6 +102,8 @@ export interface Items {
   readonly totemLeft: number
   readonly luckLeft: number
   readonly gold2xLeft: number
+  /** Invisibility cloak: silent steps, fireproof, cannot be caught. */
+  readonly cloakLeft: number
 }
 
 /** What an actor last lost to fire or a tag, for the "Geri Al" reward. */
@@ -90,6 +112,8 @@ export interface LastDrop {
   readonly rainbow: boolean
   /** Nest the dropped baby went back to; null when it was an egg. */
   readonly babyNest: number | null
+  /** The exact egg dropped (so "Get It Back" returns that egg, chest or golden one). */
+  readonly eggId?: number
 }
 
 export interface Actor {
@@ -113,6 +137,15 @@ export interface Actor {
   readonly streak: number
   readonly streakShield: boolean
   readonly rebirths: number
+  /** Crowns to spend in the crown shop (one per rebirth). */
+  readonly crowns: number
+  readonly perks: Perks
+  /** Egg drops left: put the egg on your head back, refilled with every crown. */
+  readonly drops: number
+  /** Store purchases since the last crown (prices rise with each). */
+  readonly bought: Readonly<Partial<Record<StoreItem, number>>>
+  /** The egg this actor just put back: not picked up again until they walk away from it. */
+  readonly ignoreEgg: number | null
   readonly personality: Personality | null
   readonly lastDrop: LastDrop | null
 }
@@ -168,6 +201,11 @@ export interface Happenings {
   readonly sneezeIn: number
   readonly sneezeWarned: boolean
   readonly panIn: number
+  /** Seconds until the dragon peeks (from player level 3), and how long the current peek lasts. */
+  readonly peekIn: number
+  readonly peekLeft: number
+  readonly rainIn: number
+  readonly chestIn: number
 }
 
 export interface GameState {
@@ -194,19 +232,24 @@ export type Reward = 'luck' | 'recover' | 'gold2x' | 'lullaby' | 'instantHatch' 
 export type Action =
   | { readonly type: 'usePan' }
   | { readonly type: 'merge'; readonly rarity: Rarity }
-  | { readonly type: 'upgradeNest' }
+  | { readonly type: 'upgrade'; readonly track: NestTrack }
   | { readonly type: 'rebirth' }
-  | { readonly type: 'buy'; readonly item: 'boots' | 'totem' }
   | { readonly type: 'grant'; readonly reward: Reward }
+  /** Gold purchase in the store; the price rises with each buy. Works anywhere. */
+  | { readonly type: 'buyItem'; readonly item: StoreItem }
+  /** Crown shop. Works anywhere. */
+  | { readonly type: 'buyPerk'; readonly perk: Perk }
+  /** Put the carried egg back on its spot (costs one drop). */
+  | { readonly type: 'dropEgg' }
   /** Gold spent outside the simulation (wardrobe). Works anywhere. */
   | { readonly type: 'spend'; readonly amount: number }
   /** Gold and XP paid for a finished mission. Works anywhere. */
-  | { readonly type: 'bonus'; readonly coins: number; readonly xp: number }
+  | { readonly type: 'bonus'; readonly coins: number; readonly xp: number; readonly crowns?: number; readonly drops?: number }
 
 export type GameEvent =
   | { readonly type: 'jingle'; readonly actor: number; readonly pos: Vec }
-  | { readonly type: 'pickup'; readonly actor: number; readonly rarity: Rarity; readonly rainbow: boolean }
-  | { readonly type: 'deliver'; readonly actor: number; readonly rarity: Rarity; readonly rainbow: boolean }
+  | { readonly type: 'pickup'; readonly actor: number; readonly rarity: Rarity; readonly rainbow: boolean; readonly chest?: boolean }
+  | { readonly type: 'deliver'; readonly actor: number; readonly rarity: Rarity; readonly rainbow: boolean; readonly golden?: boolean; readonly rain?: boolean }
   | { readonly type: 'hatch'; readonly nest: number; readonly rarity: Rarity; readonly shiny: boolean }
   | { readonly type: 'coin'; readonly nest: number; readonly amount: number; readonly baby: number }
   | { readonly type: 'burned'; readonly actor: number; readonly dropped: Rarity | null }
@@ -236,6 +279,19 @@ export type GameEvent =
   | { readonly type: 'levelUp'; readonly actor: number; readonly level: number }
   | { readonly type: 'streak'; readonly actor: number; readonly streak: number }
   | { readonly type: 'reward'; readonly actor: number; readonly reward: Reward }
+  | { readonly type: 'eggDropped'; readonly actor: number }
+  /** A gold purchase in the store (rewarded-ad grants stay 'reward'). */
+  | { readonly type: 'bought'; readonly actor: number; readonly item: StoreItem }
+  | { readonly type: 'rainWarn' }
+  | { readonly type: 'rain' }
+  | { readonly type: 'chestSpawn'; readonly pos: Vec }
+  | { readonly type: 'chest'; readonly actor: number; readonly coins: number; readonly reward: Reward }
+  | { readonly type: 'peekWarn' }
+  | { readonly type: 'peek' }
+  | { readonly type: 'peekEnd' }
+  | { readonly type: 'golden'; readonly actor: number; readonly coins: number }
+  | { readonly type: 'upgraded'; readonly actor: number; readonly track: NestTrack; readonly level: number }
+  | { readonly type: 'perk'; readonly actor: number; readonly perk: Perk; readonly level: number }
 
 export interface PlayerInput {
   /** Desired move direction, length 0..1, in world x/z. */

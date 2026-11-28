@@ -3,7 +3,7 @@ import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { angleDiff } from '../sim/world'
 import type { DragonRig, DragonView } from './dragonMesh'
 import { RESTING, stepAct, type DragonAct } from './dragonAct'
-import { applyDragonSkin, type DragonSkin, type EyeSpots } from './dragonSkin'
+import { applyDragonSkin, DRAGON_THEMES, type DragonSkin, type EyeSpots } from './dragonSkin'
 import { matteCopy, prepareMeshes } from './materialFx'
 
 /** Nose to tail, in metres: the dragon is as big as its hoard. */
@@ -256,7 +256,16 @@ export function createDragonTripo(gltf: GLTF): DragonRig {
     pos.y += 0.3
   }
 
-  return { group, update, mouth, nostril, itch: () => (itchT = 2), sneeze: () => (sneezeT = 0.8), tune }
+  /** Crown theme: recolour the scales and lids of every skinned part. */
+  function theme(index: number): void {
+    const t = DRAGON_THEMES[((index % DRAGON_THEMES.length) + DRAGON_THEMES.length) % DRAGON_THEMES.length]
+    for (const sk of skins) {
+      sk.dark.value.setHex(t.dark, THREE.LinearSRGBColorSpace)
+      sk.light.value.setHex(t.light, THREE.LinearSRGBColorSpace)
+    }
+  }
+
+  return { group, update, mouth, nostril, itch: () => (itchT = 2), sneeze: () => (sneezeT = 0.8), tune, theme }
 }
 
 /** Each leg's bones from hip to paw, e.g. '1_Left_Limb_0' .. '1_Left_Limb_4'. */

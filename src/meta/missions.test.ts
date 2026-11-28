@@ -89,3 +89,20 @@ describe('missionsFrom', () => {
     expect(missionsFrom(null, 1)).toEqual(newMissions(1))
   })
 })
+
+describe('missions grow with the player', () => {
+  it('golden, rain and chest missions only appear once those are unlocked', () => {
+    const kinds = (level: number): Set<string> => {
+      const seen = new Set<string>()
+      let m = newMissions(3)
+      for (let k = 0; k < 200; k++) {
+        m = stepMissions(m, [{ type: 'deliver', actor: PLAYER_ID, rarity: 3, rainbow: true, golden: true, rain: true }, { type: 'streak', actor: PLAYER_ID, streak: 9 }, { type: 'chest', actor: PLAYER_ID, coins: 1, reward: 'luck' }, { type: 'claim', actor: PLAYER_ID, from: 2, rarity: 0 }, { type: 'merge', nest: PLAYER_ID, rarity: 1 }, { type: 'coinPickup', actor: PLAYER_ID, value: 9999 }], level).missions
+        m.list.forEach((x) => seen.add(x.kind))
+      }
+      return seen
+    }
+    expect([...kinds(0)].some((k) => ['golden', 'rain', 'chest'].includes(k))).toBe(false)
+    const late = kinds(20)
+    expect(late.has('golden') && late.has('rain') && late.has('chest')).toBe(true)
+  })
+})

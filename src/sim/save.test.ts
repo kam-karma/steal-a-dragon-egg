@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createGame, PLAYER_ID } from './game'
-import { applySave, fromSave, toSave } from './save'
+import { applySave, fromSave, type SaveV1, toSave } from './save'
 import { makeLayout } from './world'
 import type { GameState } from './types'
 
@@ -59,7 +59,7 @@ describe('bad saves start a new game', () => {
     expect(s).not.toBeNull()
     expect(s?.coins).toBe(0)
     expect(s?.rebirths).toBeLessThanOrEqual(100)
-    expect(s?.capacityLevel).toBe(2)
+    expect(s?.capacityLevel).toBe(5)
     expect(s?.babies).toEqual([{ rarity: 4, shiny: true, age: 0 }])
   })
   it('keeps babies above nest capacity but caps absurd counts at 64', () => {
@@ -67,5 +67,25 @@ describe('bad saves start a new game', () => {
     expect(fromSave({ ...toSave(played(), 0), capacityLevel: 0, babies: many })?.babies).toHaveLength(40)
     const absurd = Array.from({ length: 500 }, () => ({ rarity: 0, shiny: false, age: 0 }))
     expect(fromSave({ ...toSave(played(), 0), babies: absurd })?.babies).toHaveLength(64)
+  })
+})
+
+describe('long-term progress in the save', () => {
+  it('keeps crowns, perks, drops, store counts and nest upgrades', () => {
+    const g0 = createGame(makeLayout(7), 1)
+    const g = {
+      ...g0,
+      actors: g0.actors.map((a) => (a.id === PLAYER_ID ? { ...a, crowns: 2, perks: { ...a.perks, quiet: 2, nest: 1 }, drops: 3, bought: { boots: 2 } } : a)),
+      nests: g0.nests.map((n, i) => (i === PLAYER_ID ? { ...n, capacityLevel: 4, nursery: 2, vault: 3, perkSlots: 2 } : n)),
+    }
+    const back = applySave(createGame(makeLayout(7), 2), fromSave(JSON.parse(JSON.stringify(toSave(g, 0)))) as SaveV1)
+    expect(back.actors[PLAYER_ID]).toMatchObject({ crowns: 2, drops: 3, bought: { boots: 2 } })
+    expect(back.actors[PLAYER_ID].perks).toMatchObject({ quiet: 2, nest: 1 })
+    expect(back.nests[PLAYER_ID]).toMatchObject({ capacityLevel: 4, nursery: 2, vault: 3, perkSlots: 2 })
+  })
+  it('an old save without them still loads, with one egg drop', () => {
+    const old = { ...toSave(createGame(makeLayout(7), 1), 0) } as Record<string, unknown>
+    for (const k of ['nursery', 'vault', 'perkSlots', 'crowns', 'perks', 'drops', 'bought']) delete old[k]
+    expect(fromSave(old)).toMatchObject({ crowns: 0, drops: 1, nursery: 0, vault: 0 })
   })
 })

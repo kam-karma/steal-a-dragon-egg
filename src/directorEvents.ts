@@ -6,6 +6,8 @@ import { displayName, levelTitle, T } from './i18n'
 import type { DragonRig } from './render/dragonMesh'
 import type { HoardView } from './render/hoardView'
 import type { Particles } from './render/particles'
+import { progressFeel } from './directorProgress'
+import { CFG } from './sim/config'
 import { PLAYER_ID } from './sim/ids'
 import type { GameEvent, GameState, Layout } from './sim/types'
 
@@ -32,7 +34,7 @@ function mine(e: GameEvent, d: FeelDeps): boolean {
     case 'pickup':
       if (e.actor !== PLAYER_ID) return true
       d.sfx.pickup(e.rarity)
-      d.hud.toast(e.rainbow ? T.toast.rainbowEgg : T.toast.egg(e.rarity), 'good')
+      d.hud.toast(e.chest === true ? T.toast.chestPicked : e.rainbow ? T.toast.rainbowEgg : T.toast.egg(e.rarity), 'good')
       d.hintOnce('toNest', T.hint.toNest, 5)
       return true
     case 'deliver':
@@ -64,11 +66,21 @@ function mine(e: GameEvent, d: FeelDeps): boolean {
       if (e.actor !== PLAYER_ID) return true
       d.sfx.levelUp()
       d.hud.toast(T.toast.levelUp(e.level, levelTitle(e.level)), 'good')
+      // New things arrive as the player grows: say so the moment they unlock.
+      if (e.level === CFG.peekLevel) d.hintOnce('unlockPeek', T.toast.unlockPeek, 7)
+      if (e.level === CFG.goldenLevel) d.hintOnce('unlockGolden', T.toast.unlockGolden, 7)
+      if (e.level === CFG.rainLevel) d.hintOnce('unlockRain', T.toast.unlockRain, 7)
+      if (e.level === CFG.chestLevel) d.hintOnce('unlockChest', T.toast.unlockChest, 7)
+      if (e.level === CFG.showerLevel) d.hintOnce('unlockShower', T.toast.unlockShower, 7)
       return true
     case 'rebirth':
       d.sfx.fanfare()
       d.fx.burst(nestAt(d, PLAYER_ID), 0xffd700, 80)
       d.hud.toast(T.toast.rebirth(e.rebirths), 'good')
+      if (e.actor === PLAYER_ID) {
+        const name = T.dragonThemes[e.rebirths % T.dragonThemes.length]
+        d.hintOnce(`cloak${e.rebirths}`, `${T.toast.cloak} · ${T.toast.newDragon(name)}`, 7)
+      }
       return true
     case 'reward':
       if (e.actor === PLAYER_ID) d.hud.toast(T.toast.reward(e.reward), 'good')
@@ -217,5 +229,5 @@ function world(e: GameEvent, s: GameState, d: FeelDeps): boolean {
 
 /** Turns one simulation event into sound, particles and text. No game rules here. */
 export function feel(e: GameEvent, s: GameState, d: FeelDeps): void {
-  void (mine(e, d) || nest(e, s, d) || raid(e, s, d) || world(e, s, d))
+  void (mine(e, d) || progressFeel(e, d) || nest(e, s, d) || raid(e, s, d) || world(e, s, d))
 }

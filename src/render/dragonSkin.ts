@@ -13,7 +13,24 @@ export interface DragonSkin {
   /** Eyelids, 0 open .. 1 shut. */
   readonly lidL: { value: number }
   readonly lidR: { value: number }
+  /** Scale colour in shadow and in light (the crown theme). */
+  readonly dark: { value: THREE.Color }
+  readonly light: { value: THREE.Color }
 }
+
+/**
+ * The dragon changes colour with every crown, so each new round feels like a new dragon:
+ * royal purple, emerald, ruby, frost, gold, then shadow.
+ */
+// Shader values, not sRGB colours: read them with LinearSRGBColorSpace.
+export const DRAGON_THEMES: readonly { readonly dark: number; readonly light: number }[] = [
+  { dark: 0x0b0320, light: 0x45178c },
+  { dark: 0x021a0e, light: 0x15a05a },
+  { dark: 0x220307, light: 0xb81c2c },
+  { dark: 0x041628, light: 0x5ab8ff },
+  { dark: 0x2a1600, light: 0xe0a21a },
+  { dark: 0x050508, light: 0x3a3550 },
+]
 
 /** Eye centres and size in the mesh's own (quantised) position space, found by raycasting. */
 export interface EyeSpots {
@@ -32,11 +49,11 @@ const SKIN_CODE = `
   // Red scales: red channel dominant, green low. Gold (red and green high) is left alone.
   float red = smoothstep(0.35, 0.6, sat) * (1.0 - smoothstep(0.3, 0.5, c.g / max(c.r, 1e-4)));
   float shade = smoothstep(0.02, 0.45, c.r);
-  vec3 purple = mix(vec3(0.045, 0.012, 0.11), vec3(0.27, 0.09, 0.55), shade) + vec3(0.12, 0.06, 0.22) * smoothstep(0.6, 0.95, c.r);
+  vec3 purple = mix(uScaleDark, uScaleLight, shade) + uScaleLight * 0.45 * smoothstep(0.6, 0.95, c.r);
   diffuseColor.rgb = mix(c, purple, red);
   vDragonScale = red;
   // Eyelids.
-  vec3 lidCol = vec3(0.24, 0.085, 0.47);
+  vec3 lidCol = uScaleLight * 0.88;
   vec3 lash = vec3(0.07, 0.02, 0.13);
   for (int e = 0; e < 2; e++) {
     vec3 d = vDragonPos - (e == 0 ? uEyeL : uEyeR);
@@ -76,7 +93,14 @@ const GLOW_CODE = `
 
 /** `size` = the mesh's largest local dimension; glint cells are ~1/55 of the body across. */
 export function applyDragonSkin(mat: THREE.MeshStandardMaterial, size: number, eyes: EyeSpots): DragonSkin {
-  const skin: DragonSkin = { time: { value: 0 }, anger: { value: 0 }, lidL: { value: 1 }, lidR: { value: 1 } }
+  const skin: DragonSkin = {
+    time: { value: 0 },
+    anger: { value: 0 },
+    lidL: { value: 1 },
+    lidR: { value: 1 },
+    dark: { value: new THREE.Color().setHex(DRAGON_THEMES[0].dark, THREE.LinearSRGBColorSpace) },
+    light: { value: new THREE.Color().setHex(DRAGON_THEMES[0].light, THREE.LinearSRGBColorSpace) },
+  }
   const cell = { value: 55 / Math.max(size, 1e-6) }
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uDragonCell = cell
@@ -84,6 +108,8 @@ export function applyDragonSkin(mat: THREE.MeshStandardMaterial, size: number, e
     shader.uniforms.uDragonAnger = skin.anger
     shader.uniforms.uLidL = skin.lidL
     shader.uniforms.uLidR = skin.lidR
+    shader.uniforms.uScaleDark = skin.dark
+    shader.uniforms.uScaleLight = skin.light
     shader.uniforms.uEyeL = { value: eyes.left }
     shader.uniforms.uEyeR = { value: eyes.right }
     shader.uniforms.uEyeSize = { value: eyes.size }
@@ -99,6 +125,8 @@ uniform float uDragonAnger;
 uniform float uDragonCell;
 uniform float uLidL;
 uniform float uLidR;
+uniform vec3 uScaleDark;
+uniform vec3 uScaleLight;
 uniform vec3 uEyeL;
 uniform vec3 uEyeR;
 uniform vec2 uEyeSize;
@@ -109,6 +137,6 @@ float vDragonEye = 0.0;`,
       .replace('#include <map_fragment>', `#include <map_fragment>\n${SKIN_CODE}`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\n${GLOW_CODE}`)
   }
-  mat.customProgramCacheKey = () => 'dragonSkin2'
+  mat.customProgramCacheKey = () => 'dragonSkin3'
   return skin
 }

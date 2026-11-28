@@ -1,5 +1,6 @@
 import { CFG, INCOME } from './config'
-import type { Actor, Baby, CapacityLevel, Nest, Rarity } from './types'
+import { capacityOf } from './progression'
+import type { Actor, Baby, Nest, Rarity } from './types'
 
 export type Stage = 0 | 1 | 2
 
@@ -30,12 +31,9 @@ export function babyIncome(b: Baby, owner: Actor): number {
   return INCOME[b.rarity] * Math.min(CFG.multiplierCap, boosts) * CFG.rebirthBonus ** owner.rebirths
 }
 
-export function nestCapacity(level: CapacityLevel): number {
-  return CFG.capacity[level]
-}
-
-export function upgradeCost(level: 0 | 1): number {
-  return CFG.upgradeCost[level]
+/** Spots in a nest: its size level plus the crown-perk spots. */
+export function nestCapacity(nest: Pick<Nest, 'capacityLevel' | 'perkSlots'>): number {
+  return capacityOf(nest.capacityLevel, 0) + nest.perkSlots
 }
 
 /** Three babies of one rarity → one baby of the next. The youngest are used up first. */

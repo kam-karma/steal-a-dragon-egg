@@ -1,4 +1,3 @@
-import { CFG } from '../sim/config'
 import type { Rarity, Reward } from '../sim/types'
 
 /** Turkish UI text. Every key here must also exist in en.ts. */
@@ -30,6 +29,24 @@ export const TR = {
     streak: '🤫 Uyandırmadan getir: altın serin büyür!',
   },
   toast: {
+    upgraded: (name: string, level: number) => `${name} seviye ${level}! ✨`,
+    perk: (name: string) => `👑 ${name} açıldı!`,
+    eggDropped: 'Yumurta yerine bırakıldı 🥚',
+    cloak: '🫥 60 sn görünmezsin! Kimse seni göremez',
+    golden: (coins: number) => `🌟 ALTIN YUMURTA! +${coins.toLocaleString('tr-TR')} 🪙`,
+    peekWarn: '👁️ Ejderha gözünü açmak üzere…',
+    peek: '👁️ DUR! Kıpırdama!',
+    unlockPeek: '🆕 Yeni: ejderha artık göz kırpıyor! Gözü açılınca dur',
+    unlockGolden: '🆕 Yeni: altın yumurtalar! Getir, yığınla altın kazan',
+    unlockRain: '🆕 Yeni: yumurta yağmuru! Ara ara taş zemine sessiz yumurtalar yağar',
+    unlockChest: '🆕 Yeni: hazine sandıkları! Ağır ve gürültülü ama altın dolu',
+    unlockShower: '🆕 Yeni: gökkuşağı bereketi! Gökkuşağı yumurtası iki kat sık gelir',
+    newDragon: (name: string) => `🐉 Hazineyi artık ${name} bir ejderha koruyor!`,
+    rainWarn: '🌧️ Yumurta yağmuru geliyor…',
+    rain: '🌧️ YUMURTA YAĞMURU! Kaybolmadan kap!',
+    chestSpawn: '🧰 Hazinede bir sandık var!',
+    chestPicked: '🧰 Aldın! Ağır ve gürültülü — yuvana taşı',
+    chest: (coins: number) => `🧰 HAZİNE! +${coins.toLocaleString('tr-TR')} 🪙`,
     egg: (r: Rarity) => `${TR.rarity[r]} yumurta!`,
     rainbowEgg: '🌈 GÖKKUŞAĞI YUMURTASI! Koş!',
     delivered: 'Yuvada! 🥚',
@@ -63,7 +80,7 @@ export const TR = {
   },
   culprit: (name: string) => `Suçlu: ${name} 🍳`,
   streak: (mult: string) => `🤫 Seri ×${mult}`,
-  buff: { boots: 'Sessiz Patik', totem: 'Kalkan', luck: 'Şans', gold2x: '2× Altın', shield: 'Seri Kalkanı' },
+  buff: { boots: 'Sessiz Patik', totem: 'Kalkan', luck: 'Şans', gold2x: '2× Altın', shield: 'Seri Kalkanı', cloak: 'Görünmezlik' },
   reward: {
     luck: 'Şans İksiri',
     recover: 'Geri Al',
@@ -78,21 +95,45 @@ export const TR = {
   panel: {
     title: 'YUVAN',
     merge: (r: Rarity, n: number) => `${TR.rarity[r]} ×3 → ${TR.rarity[(r + 1) as Rarity]} (${n})`,
-    upgrade: (cap: number, cost: number) => `Yuvayı büyüt → ${cap} yer (${cost.toLocaleString('tr-TR')} 🪙)`,
-    maxed: 'Yuva en büyük boyutta',
-    boots: 'Sessiz Patik (500 🪙)',
-    totem: 'Kalkan Totemi (1.500 🪙)',
-    rebirth: `Yeniden doğ (${CFG.rebirthCost.toLocaleString('tr-TR')} 🪙)`,
-    rebirthAsk: 'Altın ve yavrular sıfırlanır, kalıcı +%30 altın kazanırsın. Emin misin?',
-    yes: 'Evet',
-    no: 'Hayır',
+    size: (cap: number, cost: number) => `Büyük Yuva → ${cap} yer · ${cost.toLocaleString('tr-TR')} 🪙`,
+    nursery: (mult: number, cost: number) => `Kreş → ×${mult} hızlı büyüme · ${cost.toLocaleString('tr-TR')} 🪙`,
+    vault: (pct: number, cost: number) => `Hazine Odası → +%${pct} altın · ${cost.toLocaleString('tr-TR')} 🪙`,
+    maxed: (name: string) => `${name}: EN ÜST SEVİYE`,
+    trackName: { size: 'Büyük Yuva', nursery: 'Kreş', vault: 'Hazine Odası' },
+    crown: (cost: number) => `👑 Taç kazan · ${cost.toLocaleString('tr-TR')} 🪙`,
+    crownProgress: (pct: number) => `👑 Taç için %${pct}`,
+    crownTitle: '👑 Taç kazanmak istiyor musun?',
+    crownLose: 'Gidecekler: altın, yavrular, yuva geliştirmeleri',
+    crownKeep: 'Kalacaklar: seviyen, taçların, taç avantajların, karakterlerin',
+    crownGet: (crowns: number) => `Kazanacakların: +1 👑 (toplam ${crowns}) · kalıcı +%30 altın · 60 sn görünmezlik pelerini · yumurta bırakma hakkı`,
+    yes: 'Evet, taç!',
+    no: 'Vazgeç',
     capacity: (used: number, cap: number) => `Yavrular ${used}/${cap}`,
   },
-  action: { pan: 'VUR' },
+  crownShop: {
+    title: 'Taç Dükkânı',
+    have: (n: number) => `Taçların: ${n} 👑`,
+    hint: 'Taç avantajları kalıcıdır: yeniden doğsan da kaybolmaz.',
+    buy: (cost: number) => `${cost} 👑`,
+    maxed: 'EN ÜST',
+    level: (l: number, max: number) => `Seviye ${l}/${max}`,
+    name: { nest: 'Daha Büyük Yuva', quiet: 'Yumuşak Adımlar', luck: 'Şanslı Pati', head: 'Hızlı Başlangıç', drop: 'Bırakma Ustası' },
+    desc: {
+      nest: 'Yuvana her seviyede +2 yer',
+      quiet: 'Adımların her seviyede %10 daha sessiz',
+      luck: 'Işıltılı yavru şansı her seviyede +%50',
+      head: 'Her taçtan sonra +5.000 altınla başla',
+      drop: 'Her taçta +1 yumurta bırakma hakkı',
+    },
+  },
+  action: { pan: 'VUR', drop: (n: number) => `BIRAK (${n})` },
   offer: {
     free: 'Bedava!',
     watch: '▶ İzle',
-    giftsTitle: 'Hediyeler',
+    giftsTitle: 'Mağaza',
+    coins: (price: number) => `🪙 ${price.toLocaleString('tr-TR')}`,
+    dropTitle: 'Yumurta Bırakma',
+    dropDesc: (n: number) => `Kafandaki yumurtayı yerine bırak (Q). Şu an: ${n}`,
     notNow: 'Şu an işe yaramaz',
     left: (n: number, max: number) => `Bugün kalan: ${n}/${max}`,
     title: {
@@ -124,6 +165,31 @@ export const TR = {
   perSec: '/sn',
   levelShort: 'Sv',
   you: 'SEN',
+  book: {
+    title: 'Ejderha Kitabı',
+    progress: (n: number, total: number) => `${n} / ${total} bulundu`,
+    hint: 'Her tür yavruyu çıkar, her hazineyi bul. Her ilk buluş altın verir; kitap dolunca taç kazanırsın!',
+    baby: (rarity: string, shiny: boolean) => (shiny ? `Işıltılı ${rarity}` : `${rarity} yavru`),
+    special: { adult: 'Yetişkin ejderha', golden: 'Altın yumurta', rainbow: 'Gökkuşağı yumurtası', chest: 'Hazine sandığı' } as Record<string, string>,
+    locked: '???',
+    found: (name: string, coins: number) => `📖 Yeni: ${name}! +${coins.toLocaleString('tr-TR')} 🪙`,
+    complete: '📖 Ejderha Kitabı tamam! +1 👑',
+  },
+  daily: {
+    title: 'Günlük Hediye',
+    day: (n: number) => `${n}. Gün`,
+    claim: 'Al!',
+    later: 'Sonraki hediye için yarın gel',
+    coins: (n: number) => `🪙 ${n.toLocaleString('tr-TR')}`,
+    drops: (n: number) => `🥚 +${n} bırakma`,
+    crowns: (n: number) => `👑 +${n} taç`,
+  },
+  dragonThemes: ['mor', 'zümrüt', 'yakut', 'buz mavisi', 'altın', 'gölge'],
+  unlocks: {
+    next: (level: number, name: string) => `Sv ${level}'de: ${name}`,
+    all: 'Her şey açıldı! Şimdi taç zamanı 👑',
+    name: { peek: '👁️ Ejderha göz açar', rain: '🌧️ Yumurta yağmuru', golden: '🌟 Altın yumurta', chest: '🧰 Hazine sandığı', shower: '🌈 Gökkuşağı bereketi' },
+  },
   controls: { move: 'Yürü', or: 'ya da', drag: 'Yürümek için sürükle' },
   loading: 'Yükleniyor…',
   missions: {
@@ -135,6 +201,9 @@ export const TR = {
         case 'streak': return `Uyandırmadan art arda ${m.goal}`
         case 'steal': return 'Rakipten yavru çal'
         case 'rainbow': return 'Gökkuşağı yumurtasını getir'
+        case 'golden': return 'Altın yumurta getir'
+        case 'rain': return `${m.goal} yağmur yumurtası kap`
+        case 'chest': return 'Hazine sandığını yuvana getir'
         case 'merge': return '3 yavruyu birleştir'
         default: return `${m.goal} hapşırık altını topla`
       }

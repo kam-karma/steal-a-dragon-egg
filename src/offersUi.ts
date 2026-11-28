@@ -3,6 +3,7 @@ import { T } from './i18n'
 import { icon } from './icons'
 import { applicable, canUse, DAILY_LIMIT, isFree, type AdLedger, ledgerFromStored, type OfferMemory, pickOffer, recordUse, usedToday } from './meta/offers'
 import { PLAYER_ID } from './sim/ids'
+import { storePrice, type StoreItem } from './sim/progression'
 import type { GameEvent, GameState, Layout, Reward } from './sim/types'
 
 const KEY = 'ue.ads'
@@ -22,6 +23,8 @@ function loadLedger(): AdLedger {
 interface Deps {
   readonly ads: Ads
   readonly grant: (r: Reward) => void
+  /** Gold purchase (price rises with each buy). */
+  readonly buy: (item: StoreItem) => void
   readonly state: () => GameState
 }
 
@@ -109,8 +112,30 @@ export function createOffersUi(root: HTMLElement, d: Deps): OffersUi {
     bubble.classList.remove('show')
   }
 
+  /** The gold price button under a card; greyed out when you cannot afford it or it would do nothing. */
+  function coinButton(parent: HTMLElement, item: StoreItem, usable: boolean): void {
+    const me = d.state().actors[PLAYER_ID]
+    const price = storePrice(item, me.bought[item] ?? 0)
+    const ok = usable && me.coins >= price
+    const b = document.createElement('button')
+    b.className = ok ? 'obtn coinbtn' : 'obtn coinbtn off'
+    b.textContent = T.offer.coins(price)
+    b.addEventListener('pointerdown', (e) => {
+      e.stopPropagation()
+      if (!ok) return
+      d.buy(item)
+      // The purchase lands on the next simulation step; redraw right after it.
+      window.setTimeout(renderPanel, 80)
+    })
+    parent.appendChild(b)
+  }
+
+  let panelKey = ''
+
   function renderPanel(): void {
     const g = d.state()
+    const me = g.actors[PLAYER_ID]
+    panelKey = `${Math.floor(me.coins / 50)}|${JSON.stringify(me.bought)}|${me.drops}`
     panel.innerHTML = `<div class="whead">${icon('gift', 'tic')}<b>${T.offer.giftsTitle}</b></div>`
     const close = document.createElement('button')
     close.className = 'wclose'
@@ -128,10 +153,22 @@ export function createOffersUi(root: HTMLElement, d: Deps): OffersUi {
       card.className = 'wcard'
       card.innerHTML = `${icon(r, 'cic')}<div class="otitle">${T.offer.title[r]}</div><div class="odesc">${T.offer.desc[r]}</div><div class="oleft">${T.offer.left(left, DAILY_LIMIT[r])}</div>`
       const ok = left > 0 && applicable(g, r)
-      button(card, r, ok)
-      if (left > 0 && !ok) card.insertAdjacentHTML('beforeend', `<div class="oleft">${T.offer.notNow}</div>`)
+      const row = document.createElement('div')
+      row.className = 'obtns'
+      button(row, r, ok)
+      coinButton(row, r, applicable(g, r))
+      card.appendChild(row)
+      if (!applicable(g, r)) card.insertAdjacentHTML('beforeend', `<div class="oleft">${T.offer.notNow}</div>`)
       grid.appendChild(card)
     }
+    const drop = document.createElement('div')
+    drop.className = 'wcard'
+    drop.innerHTML = `${icon('rainbowEgg', 'cic')}<div class="otitle">${T.offer.dropTitle}</div><div class="odesc">${T.offer.dropDesc(me.drops)}</div>`
+    const dropRow = document.createElement('div')
+    dropRow.className = 'obtns'
+    coinButton(dropRow, 'drop', true)
+    drop.appendChild(dropRow)
+    grid.appendChild(drop)
     panel.appendChild(grid)
   }
 
@@ -143,6 +180,10 @@ export function createOffersUi(root: HTMLElement, d: Deps): OffersUi {
 
   return {
     tick: (state, layout, now) => {
+      if (panel.classList.contains('open')) {
+        const me = state.actors[PLAYER_ID]
+        if (`${Math.floor(me.coins / 50)}|${JSON.stringify(me.bought)}|${me.drops}` !== panelKey) renderPanel()
+      }
       if (showing !== null && now - shownAt > SHOW_FOR) hide()
       if (showing !== null || busy) return
       const r = pickOffer(state, layout, memory, now, ledger, today())

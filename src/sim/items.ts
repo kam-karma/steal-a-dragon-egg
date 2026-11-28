@@ -13,6 +13,7 @@ export function stepItems(items: Items, dt: number): Items {
     totemLeft: down(items.totemLeft),
     luckLeft: down(items.luckLeft),
     gold2xLeft: down(items.gold2xLeft),
+    cloakLeft: down(items.cloakLeft),
   }
 }
 

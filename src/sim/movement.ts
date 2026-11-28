@@ -43,7 +43,7 @@ export function moveActor(layout: Layout, a: Actor, dirX: number, dirZ: number, 
   const len = Math.hypot(dirX, dirZ)
   if (len < 0.05) return { actor: { ...a, speed: 0 }, walked: 0 }
   const k = Math.min(1, len)
-  const top = handsFree(a) ? CFG.walkSpeed : CFG.carrySpeed
+  const top = handsFree(a) ? CFG.walkSpeed : CFG.carrySpeed * (a.carrying?.chest === true ? CFG.chestSpeedFactor : 1)
   const step = top * k * dt
   const ux = dirX / len
   const uz = dirZ / len

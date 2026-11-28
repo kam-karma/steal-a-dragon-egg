@@ -1,12 +1,14 @@
 import { CFG } from './config'
+import { quietFactor } from './progression'
 import type { Actor, GameState } from './types'
 
 /** Noise one actor makes for metres walked on gold. */
 export function noiseFrom(a: Actor, walkedOnGold: number): number {
-  const load = a.carrying?.rainbow ? CFG.rainbowNoiseFactor : a.carrying !== null || a.stolen !== null ? CFG.carryNoiseFactor : 1
+  if (a.items.cloakLeft > 0) return 0
+  const load = a.carrying?.chest ? CFG.chestNoiseFactor : a.carrying?.rainbow ? CFG.rainbowNoiseFactor : a.carrying !== null || a.stolen !== null ? CFG.carryNoiseFactor : 1
   const boots = a.items.bootsLeft > 0 ? CFG.bootsNoiseFactor : 1
   const bot = a.isBot ? CFG.botNoiseFactor : 1
-  return walkedOnGold * CFG.noisePerMetre * load * boots * bot
+  return walkedOnGold * CFG.noisePerMetre * load * boots * bot * quietFactor(a.perks.quiet)
 }
 
 export interface NoiseStep {

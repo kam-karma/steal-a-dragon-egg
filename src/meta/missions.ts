@@ -1,6 +1,7 @@
 import { CFG } from '../sim/config'
 import { PLAYER_ID } from '../sim/ids'
 import { nextSeed, seedToUnit } from '../sim/rng'
+import { type UnlockId, unlocked } from '../sim/unlocks'
 import type { GameEvent } from '../sim/types'
 
 /**
@@ -8,7 +9,7 @@ import type { GameEvent } from '../sim/types'
  * (a deep egg, a quiet run, a raid, the rainbow egg), so the egg run never turns into
  * "the same thing again". A finished goal pays gold and makes room for a new one.
  */
-export type MissionKind = 'deliver' | 'rare' | 'streak' | 'steal' | 'rainbow' | 'merge' | 'coins'
+export type MissionKind = 'deliver' | 'rare' | 'streak' | 'steal' | 'rainbow' | 'merge' | 'coins' | 'golden' | 'rain' | 'chest'
 
 export interface Mission {
   readonly kind: MissionKind
@@ -31,10 +32,13 @@ export const FIRST_MISSIONS: readonly Mission[] = [
   { kind: 'streak', goal: 3, done: 0, min: 0 },
 ]
 
-const KINDS: readonly MissionKind[] = ['deliver', 'rare', 'streak', 'steal', 'rainbow', 'merge', 'coins']
+const KINDS: readonly MissionKind[] = ['deliver', 'rare', 'streak', 'steal', 'rainbow', 'merge', 'coins', 'golden', 'rain', 'chest']
+
+/** Missions about things the player has not unlocked yet never show up. */
+const NEEDS: Partial<Record<MissionKind, UnlockId>> = { golden: 'golden', rain: 'rain', chest: 'chest' }
 
 /** Base gold per mission kind; harder goals and later missions pay more. */
-const BASE: Record<MissionKind, number> = { deliver: 40, rare: 120, streak: 60, steal: 200, rainbow: 300, merge: 150, coins: 8 }
+const BASE: Record<MissionKind, number> = { deliver: 40, rare: 120, streak: 60, steal: 200, rainbow: 300, merge: 150, coins: 8, golden: 400, rain: 90, chest: 600 }
 
 export function missionReward(m: Mission, completed: number): number {
   const effort = m.kind === 'rare' ? 1 + m.min : m.goal
@@ -45,8 +49,8 @@ export function newMissions(seed: number): Missions {
   return { list: FIRST_MISSIONS, seed: seed >>> 0, completed: 0 }
 }
 
-function roll(seed: number, taken: readonly MissionKind[], completed: number): { mission: Mission; seed: number } {
-  const free = KINDS.filter((k) => !taken.includes(k))
+function roll(seed: number, taken: readonly MissionKind[], completed: number, level: number): { mission: Mission; seed: number } {
+  const free = KINDS.filter((k) => !taken.includes(k) && (NEEDS[k] === undefined || unlocked(level, NEEDS[k])))
   const s1 = nextSeed(seed)
   const kind = free[Math.floor(seedToUnit(s1) * free.length)] ?? 'deliver'
   const s2 = nextSeed(s1)
@@ -60,6 +64,9 @@ function roll(seed: number, taken: readonly MissionKind[], completed: number): {
     rainbow: 1,
     merge: 1,
     coins: 5 + Math.floor(u * 6),
+    golden: 1,
+    rain: 3 + Math.floor(u * 2),
+    chest: 1,
   }
   const min = kind === 'rare' ? Math.min(3, 1 + Math.floor(u * 2) + (step > 1 ? 1 : 0)) : 0
   return { mission: { kind, goal: goals[kind], done: 0, min }, seed: s2 }
@@ -82,6 +89,12 @@ function advance(m: Mission, e: GameEvent): number {
       return e.type === 'claim' && e.actor === PLAYER_ID ? m.done + 1 : m.done
     case 'merge':
       return e.type === 'merge' && e.nest === PLAYER_ID ? m.done + 1 : m.done
+    case 'golden':
+      return e.type === 'deliver' && e.actor === PLAYER_ID && e.golden === true ? m.done + 1 : m.done
+    case 'rain':
+      return e.type === 'deliver' && e.actor === PLAYER_ID && e.rain === true ? m.done + 1 : m.done
+    case 'chest':
+      return e.type === 'chest' && e.actor === PLAYER_ID ? m.done + 1 : m.done
     case 'coins':
       // One pickup event can scoop up several coins.
       return e.type === 'coinPickup' && e.actor === PLAYER_ID ? m.done + Math.max(1, Math.round(e.value / CFG.sneezeCoinValue)) : m.done
@@ -94,7 +107,7 @@ export interface MissionStep {
   readonly finished: readonly Mission[]
 }
 
-export function stepMissions(ms: Missions, events: readonly GameEvent[]): MissionStep {
+export function stepMissions(ms: Missions, events: readonly GameEvent[], level = 0): MissionStep {
   const progressed = ms.list.map((m) => ({ ...m, done: Math.min(m.goal, events.reduce((d, e) => advance({ ...m, done: d }, e), m.done)) }))
   const finished = progressed.filter((m) => m.done >= m.goal)
   if (finished.length === 0) {
@@ -107,7 +120,7 @@ export function stepMissions(ms: Missions, events: readonly GameEvent[]): Missio
   progressed.forEach((m, i) => {
     if (m.done < m.goal) return
     completed += 1
-    const r = roll(seed, [...list.map((x) => x.kind), m.kind], completed)
+    const r = roll(seed, [...list.map((x) => x.kind), m.kind], completed, level)
     seed = r.seed
     list = [...list.slice(0, i), r.mission, ...list.slice(i)]
   })

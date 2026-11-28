@@ -12,14 +12,16 @@ import { accumulate, culprit } from './noise'
 import { resolveTags } from './raid'
 import { nextSeed, seedToUnit } from './rng'
 import { NEST_COUNT } from './world'
-import type { Actor, Egg, GameEvent, GameState, Items, Layout, PlayerInput } from './types'
+import { dropsPerCrown } from './progression'
+import type { Actor, Egg, GameEvent, GameState, Items, Layout, Perks, PlayerInput } from './types'
 
 export { PLAYER_ID }
 
 const BOT_NAMES = ['KaplanKız', 'MiniMert', 'Zeyno', 'TurboAli', 'Pıtırcık', 'Bulut', 'ŞimşekEce']
 const COLORS = [0x3d8bff, 0xff5a5f, 0xffc23d, 0x3ddc84, 0xc86bff, 0xff8a3d, 0x2fd6d6, 0xff6fb5]
 
-export const NO_ITEMS: Items = { pans: 0, panCooldown: 0, bootsLeft: 0, totemLeft: 0, luckLeft: 0, gold2xLeft: 0 }
+export const NO_ITEMS: Items = { pans: 0, panCooldown: 0, bootsLeft: 0, totemLeft: 0, luckLeft: 0, gold2xLeft: 0, cloakLeft: 0 }
+export const NO_PERKS: Perks = { nest: 0, quiet: 0, luck: 0, head: 0, drop: 0 }
 
 function makeActor(id: number, layout: Layout): Actor {
   const home = layout.nests[id]
@@ -44,6 +46,11 @@ function makeActor(id: number, layout: Layout): Actor {
     streak: 0,
     streakShield: false,
     rebirths: 0,
+    crowns: 0,
+    perks: NO_PERKS,
+    drops: dropsPerCrown(0),
+    bought: {},
+    ignoreEgg: null,
     personality,
     lastDrop: null,
   }
@@ -60,10 +67,10 @@ export function createGame(layout: Layout, seed: number): GameState {
     eggs,
     regrow: layout.spots.map(() => 0),
     // Bots start with the biggest nest so their eggs rarely bounce back to the hoard.
-    nests: actors.map((a) => (a.isBot ? { ...emptyNest(a.id), capacityLevel: 2 as const } : emptyNest(a.id))),
+    nests: actors.map((a) => (a.isBot ? { ...emptyNest(a.id), capacityLevel: 2 } : emptyNest(a.id))),
     noiseShare: actors.map(() => 0),
     pickups: [],
-    happenings: { rainbowIn: CFG.firstRainbowAt, rainbowWarned: false, rainbowPos: null, sneezeIn: CFG.firstSneezeAt, sneezeWarned: false, panIn: CFG.firstPanAt },
+    happenings: { rainbowIn: CFG.firstRainbowAt, rainbowWarned: false, rainbowPos: null, sneezeIn: CFG.firstSneezeAt, sneezeWarned: false, panIn: CFG.firstPanAt, peekIn: CFG.peekEvery, peekLeft: 0, rainIn: 60, chestIn: 90 },
     nemesisCounts: actors.map(() => 0),
     nextId: eggs.length,
     seed,
@@ -116,19 +123,23 @@ function stepActors(ctx: StepContext): { frame: Frame; actors: readonly Actor[];
   return { frame, actors: tags.actors, seed }
 }
 
-/** Eggs grow back on empty hoard spots. */
-function regrowEggs(frame: Frame, actors: readonly Actor[], layout: Layout, dt: number): Frame {
+/** Eggs grow back on empty spots; from level 6 (of the player) some come back golden. */
+function regrowEggs(frame: Frame, actors: readonly Actor[], layout: Layout, dt: number, seed0: number): { frame: Frame; seed: number } {
   let nextId = frame.nextId
   let eggs = frame.eggs
+  let seed = seed0
+  const goldenOk = levelFromXp(actors[PLAYER_ID].xp) >= CFG.goldenLevel
   const occupied = new Set([...eggs.map((e) => e.spot), ...actors.flatMap((a) => (a.carrying ? [a.carrying.spot] : []))])
   const regrow = frame.regrow.map((r, spot) => {
     if (r <= 0) return 0
     const left = r - dt
     if (left > 0 || occupied.has(spot)) return Math.max(left, 0.01)
-    eggs = [...eggs, { id: nextId++, spot, rarity: layout.spots[spot].rarity, rainbow: false }]
+    seed = nextSeed(seed)
+    const golden = goldenOk && seedToUnit(seed) < CFG.goldenOdds
+    eggs = [...eggs, { id: nextId++, spot, rarity: layout.spots[spot].rarity, rainbow: false, ...(golden ? { golden } : {}) }]
     return 0
   })
-  return { ...frame, eggs, regrow, nextId }
+  return { frame: { ...frame, eggs, regrow, nextId }, seed }
 }
 
 function stepNests(frame: Frame, actors: readonly Actor[], dt: number, seed0: number): { frame: Frame; actors: readonly Actor[]; seed: number } {
@@ -160,7 +171,8 @@ export function stepGame(state0: GameState, layout: Layout, input: PlayerInput, 
   const acted = input.action !== undefined ? applyAction(state0, layout, PLAYER_ID, input.action) : { state: state0, events: [] }
   const state = acted.state
   const moved = stepActors({ state, layout, input, dt })
-  const grown = regrowEggs(moved.frame, moved.actors, layout, dt)
+  const regrown = regrowEggs(moved.frame, moved.actors, layout, dt, moved.seed)
+  const grown = regrown.frame
 
   const heard = acceptsNoise(state.dragon) ? accumulate(state, grown.added, dt) : { noise: state.noise, noiseShare: state.noiseShare }
   const ds = stepDragon(state.dragon, heard.noise, dt, dragonTarget({ ...state, actors: moved.actors }), culprit(heard.noiseShare))
@@ -168,7 +180,7 @@ export function stepGame(state0: GameState, layout: Layout, input: PlayerInput, 
   const afterWake = woke ? moved.actors.map(breakStreak) : moved.actors
   const noiseShare = ds.dragon.mode === 'sleep' && ds.noise === 0 ? heard.noiseShare.map(() => 0) : heard.noiseShare
 
-  const nested = stepNests({ ...grown, events: [...grown.events, ...ds.events] }, afterWake, dt, moved.seed)
+  const nested = stepNests({ ...grown, events: [...grown.events, ...ds.events] }, afterWake, dt, regrown.seed)
   const f = nested.frame
   const next: GameState = {
     ...state,

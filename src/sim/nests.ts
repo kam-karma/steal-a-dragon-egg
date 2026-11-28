@@ -1,10 +1,11 @@
 import { CFG } from './config'
 import { babyIncome, babyStage, nestCapacity } from './economy'
+import { growthSpeed, luckFactor, vaultBonus } from './progression'
 import { nextSeed, seedToUnit } from './rng'
 import type { Actor, Baby, GameEvent, Hatching, Nest, Rarity } from './types'
 
 export function emptyNest(owner: number): Nest {
-  return { owner, hatching: [], babies: [], capacityLevel: 0, lastStolenAt: -Infinity }
+  return { owner, hatching: [], babies: [], capacityLevel: 0, nursery: 0, vault: 0, perkSlots: 0, lastStolenAt: -Infinity }
 }
 
 export interface NewEgg {
@@ -21,7 +22,7 @@ export function addEgg(nest: Nest, egg: NewEgg): Nest {
 /** Room for one more delivered egg? Insurance eggs never block a nest. */
 export function canAccept(nest: Nest): boolean {
   const used = nest.babies.length + nest.hatching.filter((h) => !h.insurance).length
-  return used < nestCapacity(nest.capacityLevel)
+  return used < nestCapacity(nest)
 }
 
 export interface NestStep {
@@ -41,7 +42,7 @@ function rainbowRarity(roll: number): Rarity {
 
 function shinyOdds(h: Hatching, owner: Actor): number {
   if (h.rainbow) return CFG.rainbowShinyOdds
-  return owner.items.luckLeft > 0 ? CFG.luckyShinyOdds : CFG.shinyOdds
+  return (owner.items.luckLeft > 0 ? CFG.luckyShinyOdds : CFG.shinyOdds) * luckFactor(owner.perks.luck)
 }
 
 /** Hatches eggs (shiny roll, rainbow roll), ages babies and pays their coins to the owner. */
@@ -64,13 +65,15 @@ export function stepNest(nest: Nest, index: number, owner: Actor, dt: number, se
     })
 
   let coins = 0
+  const grow = growthSpeed(nest.nursery)
+  const vault = vaultBonus(nest.vault)
   const babies = [...nest.babies, ...born].map((b, bi) => {
-    const age = b.age + dt
+    const age = b.age + dt * grow
     const stage = babyStage(age)
     if (stage !== babyStage(b.age)) events.push({ type: 'grow', nest: index, baby: b.id, stage })
     const next = b.nextCoin - dt
     if (next > 0) return { ...b, age, nextCoin: next }
-    const amount = babyIncome({ ...b, age }, owner) * CFG.coinEvery
+    const amount = babyIncome({ ...b, age }, owner) * vault * CFG.coinEvery
     coins += amount
     events.push({ type: 'coin', nest: index, amount, baby: bi })
     return { ...b, age, nextCoin: next + CFG.coinEvery }
@@ -86,5 +89,5 @@ export function stepNest(nest: Nest, index: number, owner: Actor, dt: number, se
 }
 
 export function incomePerSecond(nest: Nest, owner: Actor): number {
-  return nest.babies.reduce((sum, b) => sum + babyIncome(b, owner), 0)
+  return nest.babies.reduce((sum, b) => sum + babyIncome(b, owner), 0) * vaultBonus(nest.vault)
 }

@@ -5,7 +5,7 @@ so the covers show the actual 3D characters, dragon and cave the player will see
 
 Usage: python -I tools/make_covers.py <wide> <tall> <square> <logo> <out dir>
 Writes cover_1920x1080.png (logo top-right, clear of the portal's top-left labels),
-cover_800x1200.png and cover_800x800.png (logo top-centre).
+cover_800x1200.png (logo top-centre, below the label zone) and cover_800x800.png (logo top-right, beside the dragon).
 """
 import sys
 from pathlib import Path
@@ -37,9 +37,9 @@ def main() -> None:
     w = Image.open(wide).convert('RGB')
     stamp(fill(w, 1920, 1080), logo, 0.34, 0.03, 0.80).save(out / 'cover_1920x1080.png')
     t = Image.open(tall).convert('RGB')
-    stamp(fill(t, 800, 1200), logo, 0.86, 0.05).save(out / 'cover_800x1200.png')
+    stamp(fill(t, 800, 1200), logo, 0.80, 0.095).save(out / 'cover_800x1200.png')
     q = Image.open(square).convert('RGB')
-    stamp(fill(q, 800, 800), logo, 0.56, 0.02).save(out / 'cover_800x800.png')
+    stamp(fill(q, 800, 800), logo, 0.42, 0.09, 0.76).save(out / 'cover_800x800.png')
 
 
 if __name__ == '__main__':

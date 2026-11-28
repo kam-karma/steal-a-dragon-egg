@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { displayName } from '../i18n'
 import type { Actor } from '../sim/types'
-import { makeBaby, makeEgg } from './eggMesh'
+import { makeBaby, makeChest, makeEgg, makeGoldenEgg } from './eggMesh'
 import { makePan } from './pickupsView'
 import type { CharacterBody, Clip } from './characters'
 import { glowTexture, labelSprite, letterTexture, starTexture } from './textures'
@@ -149,6 +149,7 @@ export function createThief(actor: Actor): ThiefRig {
     clip = null
     held.position.y = next === null ? 2.45 : next.height + 0.55
     label.position.y = next === null ? 2.55 : next.height + 1.25
+    refreshCloak()
   }
 
   let clip: Clip | null = null
@@ -210,10 +211,13 @@ export function createThief(actor: Actor): ThiefRig {
       arm.rotation.z = carrying ? s * 0.25 : 0
     })
 
-    const key = a.carrying !== null ? `e${a.carrying.rarity}${a.carrying.rainbow ? 'r' : ''}` : a.stolen !== null ? `b${a.stolen.rarity}` : ''
+    const key = a.carrying !== null ? `e${a.carrying.rarity}${a.carrying.rainbow ? 'r' : ''}${a.carrying.golden === true ? 'g' : ''}${a.carrying.chest === true ? 'c' : ''}` : a.stolen !== null ? `b${a.stolen.rarity}` : ''
     if (key !== heldKey) {
       held.clear()
-      if (a.carrying !== null) held.add(makeEgg(a.carrying.rarity, a.carrying.rainbow))
+      if (a.carrying !== null) {
+        const c = a.carrying
+        held.add(c.chest === true ? makeChest() : c.golden === true ? makeGoldenEgg(c.rarity) : makeEgg(c.rarity, c.rainbow))
+      }
       if (a.stolen !== null) {
         const baby = makeBaby(a.stolen.rarity, a.stolen.shiny)
         baby.scale.setScalar(0.8)
@@ -221,8 +225,9 @@ export function createThief(actor: Actor): ThiefRig {
         held.add(baby)
       }
       heldKey = key
+      refreshCloak()
     }
-    held.rotation.y = a.stolen !== null ? Math.sin(time * 9) * 0.5 : time * 1.5
+    held.rotation.y = a.stolen !== null ? Math.sin(time * 9) * 0.5 : a.carrying?.chest === true ? rig.rotation.y : time * 1.5
     alert.visible = a.stolen !== null
     if (alert.visible) alert.scale.setScalar(1.2 + Math.abs(Math.sin(time * 8)) * 0.35)
 
@@ -240,6 +245,54 @@ export function createThief(actor: Actor): ThiefRig {
     }
     cloth.color.copy(baseColor).lerp(soot, Math.min(1, a.stunned * 0.9))
     head.rotation.z = a.stunned > 0 ? Math.sin(time * 9) * 0.25 : 0
+    // Invisibility cloak: see-through, flickering in its last seconds.
+    const cloak = a.items.cloakLeft > 0
+    if (cloak !== cloaked) setCloak(cloak)
+    if (cloak) ghostOpacity(a.items.cloakLeft < 5 ? 0.25 + Math.abs(Math.sin(time * 10)) * 0.4 : 0.28)
+  }
+
+  let cloaked = false
+  let ghosts: THREE.Material[] = []
+  const toGhost = (orig: THREE.Material): THREE.Material => {
+    const ghost = orig.clone()
+    ghost.transparent = true
+    ghost.depthWrite = false
+    ghost.userData.orig = orig
+    ghosts.push(ghost)
+    return ghost
+  }
+  const fromGhost = (m: THREE.Material): THREE.Material => (m.userData.orig as THREE.Material | undefined) ?? m
+  /**
+   * Swaps every mesh (body and the egg it holds) to see-through copies of its materials, and
+   * back. Copies are never shared, so other thieves are untouched; old copies are disposed.
+   */
+  function setCloak(on: boolean): void {
+    cloaked = on
+    group.traverse((o) => {
+      const m = o as THREE.Mesh
+      if (!m.isMesh) return
+      const mats = Array.isArray(m.material) ? m.material : [m.material]
+      const plain = mats.map(fromGhost)
+      const next = on ? plain.map(toGhost) : plain
+      m.material = Array.isArray(m.material) ? next : next[0]
+    })
+    for (const g of ghosts) if (!on || !isLive(g)) g.dispose()
+    ghosts = on ? ghosts.filter(isLive) : []
+  }
+  function isLive(g: THREE.Material): boolean {
+    let live = false
+    group.traverse((o) => {
+      const m = (o as THREE.Mesh).material
+      if (m === g || (Array.isArray(m) && m.includes(g))) live = true
+    })
+    return live
+  }
+  /** After the body or the held egg changed: new meshes join the cloak too. */
+  function refreshCloak(): void {
+    if (cloaked) setCloak(true)
+  }
+  function ghostOpacity(o: number): void {
+    for (const g of ghosts) g.opacity = o
   }
 
   return { group, update, setBody }

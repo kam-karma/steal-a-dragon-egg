@@ -22,6 +22,8 @@ export interface DragonRig {
   readonly sneeze: () => void
   /** Dev only: live pose dials, where a rig has them. */
   readonly tune?: Record<string, number>
+  /** Crown theme colour (index into DRAGON_THEMES), where a rig supports it. */
+  readonly theme?: (index: number) => void
 }
 
 const std = (color: number, extra: THREE.MeshStandardMaterialParameters = {}): THREE.MeshStandardMaterial =>

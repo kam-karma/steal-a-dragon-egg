@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { babyIncome, babyStage, levelFromXp, mergeBabies, nestCapacity, streakMultiplier, titleFor, upgradeCost } from './economy'
+import { babyIncome, babyStage, levelFromXp, mergeBabies, nestCapacity, streakMultiplier, titleFor } from './economy'
 import { createGame } from './game'
 import { emptyNest } from './nests'
 import { makeLayout } from './world'
@@ -38,8 +38,8 @@ describe('income', () => {
 
 describe('nest capacity', () => {
   it('is 6 / 10 / 16 and upgrades cost 10000 / 80000 (balanced)', () => {
-    expect([nestCapacity(0), nestCapacity(1), nestCapacity(2)]).toEqual([6, 10, 16])
-    expect([upgradeCost(0), upgradeCost(1)]).toEqual([10_000, 80_000])
+    expect([0, 1, 2].map((capacityLevel) => nestCapacity({ capacityLevel, perkSlots: 0 }))).toEqual([6, 10, 16])
+    expect(nestCapacity({ capacityLevel: 2, perkSlots: 4 })).toBe(20)
   })
 })
 

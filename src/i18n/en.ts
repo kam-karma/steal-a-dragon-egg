@@ -1,4 +1,3 @@
-import { CFG } from '../sim/config'
 import type { Rarity, Reward } from '../sim/types'
 import type { Strings } from './tr'
 
@@ -31,6 +30,24 @@ export const EN: Strings = {
     streak: '🤫 Bring eggs without waking it: your gold streak grows!',
   },
   toast: {
+    upgraded: (name: string, level: number) => `${name} level ${level}! ✨`,
+    perk: (name: string) => `👑 ${name} unlocked!`,
+    eggDropped: 'Egg put back 🥚',
+    cloak: '🫥 Invisible for 60 s! Nobody can see you',
+    golden: (coins: number) => `🌟 GOLDEN EGG! +${coins.toLocaleString('en-US')} 🪙`,
+    peekWarn: '👁️ The dragon is about to peek…',
+    peek: '👁️ FREEZE! Don’t move!',
+    unlockPeek: '🆕 New: the dragon now peeks! Freeze when its eye opens',
+    unlockGolden: '🆕 New: golden eggs! Deliver them for a pile of gold',
+    unlockRain: '🆕 New: egg rain! Quiet eggs fall on the stone ring now and then',
+    unlockChest: '🆕 New: treasure chests! Heavy and loud, but full of gold',
+    unlockShower: '🆕 New: rainbow shower! The rainbow egg comes twice as often',
+    newDragon: (name: string) => `🐉 The ${name} Dragon now guards the hoard!`,
+    rainWarn: '🌧️ Egg rain is coming…',
+    rain: '🌧️ EGG RAIN! Grab them before they vanish!',
+    chestSpawn: '🧰 A treasure chest on the hoard!',
+    chestPicked: '🧰 Got it! Heavy and loud — carry it home',
+    chest: (coins: number) => `🧰 TREASURE! +${coins.toLocaleString('en-US')} 🪙`,
     egg: (r: Rarity) => `${EN.rarity[r]} egg!`,
     rainbowEgg: '🌈 RAINBOW EGG! Run!',
     delivered: 'In the nest! 🥚',
@@ -64,7 +81,7 @@ export const EN: Strings = {
   },
   culprit: (name: string) => `Culprit: ${name} 🍳`,
   streak: (mult: string) => `🤫 Streak ×${mult}`,
-  buff: { boots: 'Quiet Boots', totem: 'Shield', luck: 'Luck', gold2x: '2× Gold', shield: 'Streak Shield' },
+  buff: { boots: 'Quiet Boots', totem: 'Shield', luck: 'Luck', gold2x: '2× Gold', shield: 'Streak Shield', cloak: 'Invisible' },
   reward: {
     luck: 'Luck Potion',
     recover: 'Get It Back',
@@ -79,21 +96,45 @@ export const EN: Strings = {
   panel: {
     title: 'YOUR NEST',
     merge: (r: Rarity, n: number) => `${EN.rarity[r]} ×3 → ${EN.rarity[(r + 1) as Rarity]} (${n})`,
-    upgrade: (cap: number, cost: number) => `Grow nest → ${cap} spots (${cost.toLocaleString('en-US')} 🪙)`,
-    maxed: 'Nest is at its biggest',
-    boots: 'Quiet Boots (500 🪙)',
-    totem: 'Shield Totem (1,500 🪙)',
-    rebirth: `Rebirth (${CFG.rebirthCost.toLocaleString('en-US')} 🪙)`,
-    rebirthAsk: 'Your gold and babies reset, and you get +30% gold forever. Are you sure?',
-    yes: 'Yes',
-    no: 'No',
+    size: (cap: number, cost: number) => `Bigger Nest → ${cap} spots · ${cost.toLocaleString('en-US')} 🪙`,
+    nursery: (mult: number, cost: number) => `Nursery → grow ×${mult} faster · ${cost.toLocaleString('en-US')} 🪙`,
+    vault: (pct: number, cost: number) => `Treasure Vault → +${pct}% gold · ${cost.toLocaleString('en-US')} 🪙`,
+    maxed: (name: string) => `${name}: MAX`,
+    trackName: { size: 'Bigger Nest', nursery: 'Nursery', vault: 'Treasure Vault' },
+    crown: (cost: number) => `👑 Win a crown · ${cost.toLocaleString('en-US')} 🪙`,
+    crownProgress: (pct: number) => `👑 ${pct}% to a crown`,
+    crownTitle: '👑 Win a crown?',
+    crownLose: 'You lose: gold, babies, nest upgrades',
+    crownKeep: 'You keep: your level, crowns, crown perks and characters',
+    crownGet: (crowns: number) => `You get: +1 👑 (${crowns} in total) · +30% gold forever · 60 s invisibility cloak · egg drops refilled`,
+    yes: 'Yes, crown me!',
+    no: 'Not yet',
     capacity: (used: number, cap: number) => `Babies ${used}/${cap}`,
   },
-  action: { pan: 'HIT' },
+  crownShop: {
+    title: 'Crown Shop',
+    have: (n: number) => `Your crowns: ${n} 👑`,
+    hint: 'Crown perks are permanent: they stay after every rebirth.',
+    buy: (cost: number) => `${cost} 👑`,
+    maxed: 'MAX',
+    level: (l: number, max: number) => `Level ${l}/${max}`,
+    name: { nest: 'Bigger Nest', quiet: 'Soft Steps', luck: 'Lucky Paws', head: 'Head Start', drop: 'Drop Master' },
+    desc: {
+      nest: '+2 nest spots per level',
+      quiet: 'Your steps are 10% quieter per level',
+      luck: '+50% Shiny baby chance per level',
+      head: 'Start every crown with +5,000 gold per level',
+      drop: '+1 egg drop with every crown',
+    },
+  },
+  action: { pan: 'HIT', drop: (n: number) => `DROP (${n})` },
   offer: {
     free: 'Free!',
     watch: '▶ Watch',
-    giftsTitle: 'Gifts',
+    giftsTitle: 'Shop',
+    coins: (price: number) => `🪙 ${price.toLocaleString('en-US')}`,
+    dropTitle: 'Egg Drop',
+    dropDesc: (n: number) => `Put the egg on your head back (Q). You have: ${n}`,
     notNow: 'Not useful right now',
     left: (n: number, max: number) => `Left today: ${n}/${max}`,
     title: {
@@ -125,6 +166,31 @@ export const EN: Strings = {
   perSec: '/s',
   levelShort: 'Lv',
   you: 'YOU',
+  book: {
+    title: 'Dragon Book',
+    progress: (n: number, total: number) => `${n} / ${total} found`,
+    hint: 'Hatch every kind of baby and find every treasure. Each first find pays gold; a full book gives a crown!',
+    baby: (rarity: string, shiny: boolean) => (shiny ? `Shiny ${rarity}` : `${rarity} baby`),
+    special: { adult: 'Grown-up dragon', golden: 'Golden egg', rainbow: 'Rainbow egg', chest: 'Treasure chest' } as Record<string, string>,
+    locked: '???',
+    found: (name: string, coins: number) => `📖 New: ${name}! +${coins.toLocaleString('en-US')} 🪙`,
+    complete: '📖 Dragon Book complete! +1 👑',
+  },
+  daily: {
+    title: 'Daily Gift',
+    day: (n: number) => `Day ${n}`,
+    claim: 'Claim!',
+    later: 'Come back tomorrow for the next gift',
+    coins: (n: number) => `🪙 ${n.toLocaleString('en-US')}`,
+    drops: (n: number) => `🥚 +${n} drop`,
+    crowns: (n: number) => `👑 +${n} crown`,
+  },
+  dragonThemes: ['Purple', 'Emerald', 'Ruby', 'Frost', 'Golden', 'Shadow'],
+  unlocks: {
+    next: (level: number, name: string) => `Next at Lv ${level}: ${name}`,
+    all: 'Everything unlocked! Go for crowns 👑',
+    name: { peek: '👁️ Dragon peeks', rain: '🌧️ Egg rain', golden: '🌟 Golden eggs', chest: '🧰 Treasure chests', shower: '🌈 Rainbow shower' },
+  },
   controls: { move: 'Move', or: 'or', drag: 'Drag to move' },
   loading: 'Loading…',
   missions: {
@@ -136,6 +202,9 @@ export const EN: Strings = {
         case 'streak': return `${m.goal} in a row, no waking`
         case 'steal': return 'Steal a rival’s baby'
         case 'rainbow': return 'Bring the rainbow egg'
+        case 'golden': return 'Bring a golden egg'
+        case 'rain': return `Grab ${m.goal} rain eggs`
+        case 'chest': return 'Bring home a treasure chest'
         case 'merge': return 'Merge 3 babies'
         default: return `Grab ${m.goal} sneeze coins`
       }

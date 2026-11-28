@@ -90,6 +90,65 @@ function eggModelMaterial(r: Rarity, rainbow: boolean): THREE.MeshStandardMateri
 }
 
 /** A spotted, glowing dragon egg. Rarer = brighter. Rainbow eggs shimmer through every colour. */
+const GOLDEN = new THREE.MeshStandardMaterial({ color: 0xffd34d, emissive: 0xffa000, emissiveIntensity: 0.75, roughness: 0.25, metalness: 0 })
+
+const WOOD = new THREE.MeshStandardMaterial({ color: 0x8a4b22, roughness: 0.7, metalness: 0 })
+const WOOD_DARK = new THREE.MeshStandardMaterial({ color: 0x5c2f14, roughness: 0.75, metalness: 0 })
+const CHEST_GOLD = new THREE.MeshStandardMaterial({ color: 0xffd34d, emissive: 0xffa000, emissiveIntensity: 0.45, roughness: 0.3, metalness: 0 })
+const CHEST_GLOW = new THREE.MeshBasicMaterial({ color: 0xfff2a0 })
+
+const CHEST_GEO = {
+  box: new THREE.BoxGeometry(1.1, 0.62, 0.74),
+  lid: new THREE.CylinderGeometry(0.37, 0.37, 1.1, 16, 1, false, 0, Math.PI),
+  seam: new THREE.BoxGeometry(1.06, 0.05, 0.7),
+  band: new THREE.BoxGeometry(0.09, 0.66, 0.78),
+  arc: new THREE.TorusGeometry(0.38, 0.045, 6, 16, Math.PI),
+  lock: new THREE.BoxGeometry(0.2, 0.24, 0.08),
+}
+
+/** A treasure chest: wooden box and rounded lid with gold bands, a lock, and gold glowing at the seam. Shares its geometry. */
+export function makeChest(): THREE.Group {
+  const g = new THREE.Group()
+  const box = new THREE.Mesh(CHEST_GEO.box, WOOD)
+  box.position.y = 0.31
+  const lid = new THREE.Mesh(CHEST_GEO.lid, WOOD_DARK)
+  lid.rotation.z = Math.PI / 2
+  lid.rotation.y = Math.PI / 2
+  lid.position.y = 0.62
+  const seam = new THREE.Mesh(CHEST_GEO.seam, CHEST_GLOW)
+  seam.position.y = 0.63
+  g.add(box, lid, seam)
+  for (const x of [-0.42, 0, 0.42]) {
+    const band = new THREE.Mesh(CHEST_GEO.band, CHEST_GOLD)
+    band.position.set(x, 0.33, 0)
+    const arc = new THREE.Mesh(CHEST_GEO.arc, CHEST_GOLD)
+    arc.rotation.y = Math.PI / 2
+    arc.position.set(x, 0.62, 0)
+    g.add(band, arc)
+  }
+  const lock = new THREE.Mesh(CHEST_GEO.lock, CHEST_GOLD)
+  lock.position.set(0, 0.5, 0.4)
+  g.add(lock)
+  g.traverse((o) => {
+    if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).castShadow = true
+  })
+  g.position.y = -0.4
+  const wrap = new THREE.Group()
+  wrap.add(g)
+  return wrap
+}
+
+/** A golden egg: the egg in shining gold with a sparkle, a little bigger. */
+export function makeGoldenEgg(r: Rarity): THREE.Group {
+  const g = makeEgg(r)
+  g.traverse((o) => {
+    const m = o as THREE.Mesh
+    if (m.isMesh) m.material = GOLDEN
+  })
+  g.scale.setScalar(1.2)
+  return g
+}
+
 export function makeEgg(r: Rarity, rainbow = false): THREE.Group {
   const g = new THREE.Group()
   if (eggTemplate !== null) {
