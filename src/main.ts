@@ -14,6 +14,7 @@ import { createDirector } from './director'
 import { createBookUi } from './bookUi'
 import { createCrownShopUi } from './crownShopUi'
 import { showDailyGift } from './dailyUi'
+import { sideMenu } from './smallScreen'
 import { createMissionsUi } from './missionsUi'
 import { createMusic } from './music'
 import { type ControlsHint, showControlsHint } from './controlsHint'
@@ -235,6 +236,7 @@ const book = createBookUi(document.body, {
     sfx.shiny()
   },
 })
+sideMenu(document.body)
 const crownShop = createCrownShopUi(document.body, { state: () => state, buyPerk: (perk) => queue({ type: 'buyPerk', perk }) })
 const missions = createMissionsUi(document.querySelector<HTMLElement>('.status') ?? document.body, {
   pay: (coins, xp) => queue({ type: 'bonus', coins, xp }),

@@ -46,13 +46,13 @@ button { font-family: inherit; }
 
 /* Gold purse */
 .purse { position: absolute; top: 12px; left: 12px; display: flex; align-items: center; gap: 8px; padding: 6px 16px 6px 8px; }
-.purseicon .ic { width: 54px; height: 54px; display: block; filter: drop-shadow(0 3px 0 rgba(0,0,0,.35)); animation: coinbob 2.4s ease-in-out infinite; }
+.purseicon .ic { width: 44px; height: 44px; display: block; filter: drop-shadow(0 3px 0 rgba(0,0,0,.35)); animation: coinbob 2.4s ease-in-out infinite; }
 @keyframes coinbob { 50% { transform: translateY(-3px) rotate(-6deg); } }
-.coins { font-size: 28px; color: var(--gold); text-shadow: var(--stroke); line-height: 1; }
+.coins { font-size: 24px; color: var(--gold); text-shadow: var(--stroke); line-height: 1; }
 .rate { font-size: 15px; color: var(--good); text-shadow: var(--stroke); }
 
 /* Leaderboard */
-.board { position: absolute; top: 12px; right: 76px; padding: 6px 12px 8px; font-size: 14px; min-width: 170px; }
+.board { position: absolute; top: 10px; right: 66px; padding: 5px 10px 7px; font-size: 13px; min-width: 150px; }
 .boardhead { display: flex; align-items: center; gap: 6px; color: var(--gold); text-shadow: var(--stroke); font-size: 16px; margin-bottom: 2px; }
 .boardhead .ic { width: 30px; height: 30px; }
 .board .row { display: flex; align-items: center; gap: 6px; padding: 1px 0; opacity: 0.88; text-shadow: 0 2px 0 var(--ink); }
@@ -62,18 +62,19 @@ button { font-family: inherit; }
 .board em { font-style: normal; }
 
 /* Square side buttons */
-.mute, .wardbtn, .giftbtn, .crownbtn, .bookbtn { position: fixed; right: 12px; width: 54px; height: 54px; border-radius: 16px; border: none; cursor: pointer; pointer-events: auto; display: grid; place-items: center; background: var(--panel-bg); box-shadow: var(--rim); font-size: 22px; z-index: 5; transition: transform 0.08s; }
-.mute { top: 12px; }
-.wardbtn { top: 76px; }
-.giftbtn { top: 140px; animation: giftwiggle 2.2s ease-in-out infinite; }
-.crownbtn { top: 204px; }
-.bookbtn { top: 268px; }
+.mute, .wardbtn, .giftbtn, .crownbtn, .bookbtn, .menubtn { position: fixed; right: 10px; width: 46px; height: 46px; border-radius: 14px; border: none; cursor: pointer; pointer-events: auto; display: grid; place-items: center; background: var(--panel-bg); box-shadow: var(--rim); font-size: 22px; z-index: 5; transition: transform 0.08s; }
+.mute { top: 10px; }
+.wardbtn { top: 62px; }
+.giftbtn { top: 114px; animation: giftwiggle 2.2s ease-in-out infinite; }
+.crownbtn { top: 166px; }
+.bookbtn { top: 218px; }
+.menubtn { display: none; color: #fff; text-shadow: var(--stroke); }
 .bookbtn b { position: absolute; right: 3px; bottom: 1px; font-weight: 400; font-size: 14px; color: #b9f2ff; text-shadow: var(--stroke); }
 .bookic { font-size: 30px; line-height: 1; }
 .crownbtn b { position: absolute; right: 3px; bottom: 1px; font-weight: 400; font-size: 16px; color: var(--gold); text-shadow: var(--stroke); }
 .crownbtn.has { box-shadow: var(--rim), 0 0 18px rgba(255, 215, 80, .8); }
 .mute:active, .wardbtn:active, .giftbtn:active, .crownbtn:active, .bookbtn:active { transform: translateY(3px); }
-.rbic { width: 46px; height: 46px; }
+.rbic { width: 38px; height: 38px; }
 @keyframes giftwiggle { 0%, 80%, 100% { transform: rotate(0); } 85% { transform: rotate(-10deg); } 90% { transform: rotate(10deg); } 95% { transform: rotate(-6deg); } }
 
 /* Toasts, hints, floaters */
@@ -165,7 +166,7 @@ button { font-family: inherit; }
 /* Status strip under the purse */
 .nextunlock { font-size: 13px; color: #b9f2ff; text-shadow: var(--stroke); }
 .ui2 { pointer-events: none; }
-.status { position: absolute; top: 92px; left: 12px; display: flex; flex-direction: column; gap: 5px; max-width: 230px; }
+.status { position: absolute; top: 76px; left: 12px; display: flex; flex-direction: column; gap: 5px; max-width: 230px; }
 .streak { font-size: 22px; color: var(--good); text-shadow: var(--stroke); animation: pulse 1.2s infinite; }
 .level { font-size: 15px; text-shadow: var(--stroke); }
 .xpbar { width: 200px; height: 12px; border-radius: 8px; background: #12061f; box-shadow: 0 0 0 3px var(--ink), inset 0 0 0 2px #b46bff; overflow: hidden; }
@@ -174,7 +175,7 @@ button { font-family: inherit; }
 .buffs div { display: flex; align-items: center; gap: 6px; }
 
 /* Missions card under the level bar */
-.missions { margin-top: 4px; width: 230px; padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 5px; background: var(--panel-bg); box-shadow: var(--rim); border-radius: 16px; }
+.missions { margin-top: 4px; width: 210px; padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 5px; background: var(--panel-bg); box-shadow: var(--rim); border-radius: 16px; }
 .missions.flash { animation: mflash 0.9s ease-out; }
 @keyframes mflash { 0% { transform: scale(1.08); box-shadow: var(--rim), 0 0 28px rgba(255, 214, 90, .9); } }
 .mhead { font-size: 14px; letter-spacing: 1px; color: var(--gold, #ffd34d); text-shadow: var(--stroke); }
@@ -184,21 +185,21 @@ button { font-family: inherit; }
 .mrow em { font-style: normal; font-size: 13px; opacity: .9; z-index: 1; }
 .mrow i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, rgba(80, 220, 160, .35), rgba(80, 220, 160, .15)); transition: width .4s; }
 .buffs b { color: var(--gold); font-weight: 400; }
-.bic { width: 30px; height: 30px; flex: none; filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
-.tic { width: 42px; height: 42px; flex: none; filter: drop-shadow(0 3px 0 rgba(0,0,0,.35)); }
+.bic { width: 24px; height: 24px; flex: none; filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
+.tic { width: 32px; height: 32px; flex: none; filter: drop-shadow(0 3px 0 rgba(0,0,0,.35)); }
 
 /* Nest panel */
-.nestpanel { position: absolute; bottom: 150px; right: 14px; display: none; flex-direction: column; gap: 7px; padding: 12px; max-width: 320px; pointer-events: auto; }
-.ptitle { display: flex; align-items: center; gap: 8px; font-size: 20px; color: var(--gold); text-shadow: var(--stroke); }
+.nestpanel { position: absolute; bottom: 140px; right: 66px; display: none; flex-direction: column; gap: 5px; padding: 9px 10px; width: 290px; max-height: calc(100vh - 380px); min-height: 0; overflow-y: auto; pointer-events: auto; }
+.ptitle { display: flex; align-items: center; gap: 6px; font-size: 16px; color: var(--gold); text-shadow: var(--stroke); }
 .ptitle em { font-style: normal; font-size: 14px; color: #fff; margin-left: auto; }
 .pask { font-size: 15px; text-shadow: 0 2px 0 var(--ink); }
-.pbtn, .wbtn, .obtn { display: flex; align-items: center; gap: 8px; font-size: 15px; padding: 7px 12px 9px; border-radius: 14px; border: none; cursor: pointer; text-align: left; color: #fff; text-shadow: var(--stroke); background: var(--btn); box-shadow: 0 0 0 3px var(--ink), inset 0 -5px 0 rgba(140,50,0,.4), inset 0 3px 0 rgba(255,255,255,.45), 0 5px 0 rgba(0,0,0,.35); transition: transform .08s; }
+.pbtn, .wbtn, .obtn { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 5px 10px 7px; border-radius: 12px; border: none; cursor: pointer; text-align: left; color: #fff; text-shadow: var(--stroke); background: var(--btn); box-shadow: 0 0 0 3px var(--ink), inset 0 -5px 0 rgba(140,50,0,.4), inset 0 3px 0 rgba(255,255,255,.45), 0 5px 0 rgba(0,0,0,.35); transition: transform .08s; }
 .pbtn:active, .wbtn:active, .obtn:active { transform: translateY(3px); }
 .wbtn.ad, .obtn { background: var(--btn-blue); box-shadow: 0 0 0 3px var(--ink), inset 0 -5px 0 rgba(10,40,120,.45), inset 0 3px 0 rgba(255,255,255,.5), 0 5px 0 rgba(0,0,0,.35); }
 .pbtn.off, .wbtn.off, .obtn.off { background: linear-gradient(180deg, #6a6178, #453c52); box-shadow: 0 0 0 3px var(--ink), inset 0 -4px 0 rgba(0,0,0,.3); color: #cfc6dc; cursor: default; }
 
 /* Culprit card, rainbow banner, pan button */
-.culprit { position: absolute; top: 230px; right: 14px; padding: 10px 16px; font-size: 20px; color: var(--bad); text-shadow: var(--stroke); opacity: 0; transform: translateX(40px) rotate(4deg); transition: opacity .2s, transform .25s cubic-bezier(.3,1.6,.5,1); }
+.culprit { position: absolute; top: 280px; right: 66px; padding: 10px 16px; font-size: 20px; color: var(--bad); text-shadow: var(--stroke); opacity: 0; transform: translateX(40px) rotate(4deg); transition: opacity .2s, transform .25s cubic-bezier(.3,1.6,.5,1); }
 .culprit.show { opacity: 1; transform: rotate(-2deg); }
 .banner { position: absolute; top: 150px; left: 50%; transform: translateX(-50%); padding: 8px 26px; border-radius: 18px; font-size: 26px; background: linear-gradient(90deg, #ff5a5f, #ffc23d, #3ddc84, #3d8bff, #c86bff); color: #fff; text-shadow: var(--stroke); box-shadow: 0 0 0 3px var(--ink), 0 0 30px rgba(255,255,255,.4); display: none; white-space: nowrap; }
 .banner.show { display: block; animation: pulse .6s infinite; }
@@ -228,14 +229,15 @@ button { font-family: inherit; }
 .fakead { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #000e; color: #fff; font-size: 30px; text-shadow: var(--stroke); z-index: 50; }
 
 /* Offer bubble */
-.offer { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%) translateY(30px) scale(.9); opacity: 0; pointer-events: none; display: flex; align-items: center; gap: 12px; padding: 10px 14px; transition: opacity .2s, transform .25s cubic-bezier(.3,1.6,.5,1); z-index: 7; max-width: 94vw; }
-.offer.show { opacity: 1; transform: translateX(-50%); pointer-events: auto; }
+.offer { position: fixed; left: 12px; bottom: 96px; transform: translateY(30px) scale(.9); transform-origin: bottom left; opacity: 0; pointer-events: none; display: flex; align-items: center; gap: 12px; padding: 10px 14px; transition: opacity .2s, transform .25s cubic-bezier(.3,1.6,.5,1); z-index: 7; max-width: min(460px, calc(100vw - 400px)); }
+.offer.show { opacity: 1; transform: none; pointer-events: auto; }
 .oic { width: 66px; height: 66px; flex: none; filter: drop-shadow(0 3px 0 rgba(0,0,0,.35)); animation: coinbob 1.6s ease-in-out infinite; }
 .otext { display: flex; flex-direction: column; }
 .otitle { font-size: 19px; color: var(--gold); text-shadow: var(--stroke); }
 .odesc { font-size: 14px; text-shadow: 0 2px 0 var(--ink); }
 .oleft { font-size: 13px; color: var(--gold); }
-.offer .otitle, .offer .odesc { white-space: nowrap; }
+.offer .otitle { white-space: nowrap; }
+.offer .odesc { white-space: normal; }
 .obtn { font-size: 17px; white-space: nowrap; }
 .oclose { width: 34px; height: 34px; border-radius: 10px; border: none; background: rgba(255,255,255,.15); color: #fff; cursor: pointer; flex: none; }
 
@@ -260,17 +262,24 @@ button { font-family: inherit; }
   .buffs { font-size: 11px; }
   .toast { font-size: 20px; top: 24%; }
   .hint { bottom: 168px; font-size: 13px; padding: 6px 12px; white-space: normal; text-align: center; width: 84vw; }
-  .mute, .wardbtn, .giftbtn, .crownbtn { width: 40px; height: 40px; right: 6px; border-radius: 12px; }
-  .mute { top: 6px; }
-  .wardbtn { top: 52px; }
-  .giftbtn { top: 98px; }
-  .crownbtn { top: 144px; }
-  .bookbtn { top: 190px; width: 40px; height: 40px; right: 6px; border-radius: 12px; }
-  .bookic { font-size: 22px; }
+  /* Side buttons: shop and a ☰ menu; the rest opens from the menu. */
+  .menubtn { display: grid; }
+  .mute, .wardbtn, .giftbtn, .crownbtn, .menubtn { width: 34px; height: 34px; right: 6px; border-radius: 10px; font-size: 16px; }
+  .menubtn { top: 6px; }
+  .giftbtn { top: 46px; animation: none; }
+  .mute, .wardbtn, .crownbtn, .bookbtn { display: none; }
+  .menu-open .mute, .menu-open .wardbtn, .menu-open .crownbtn, .menu-open .bookbtn { display: grid; }
+  .mute { top: 86px; }
+  .wardbtn { top: 126px; }
+  .crownbtn { top: 166px; }
+  .bookbtn { top: 206px; width: 34px; height: 34px; right: 6px; border-radius: 10px; }
+  .bookic { font-size: 17px; }
+  .bookbtn b { font-size: 10px; }
+  .menu-open .menubtn { box-shadow: var(--rim), 0 0 14px rgba(255, 215, 80, .8); }
   .wgrid.dailygrid { grid-template-columns: repeat(4, 1fr); }
-  .crownbtn b { font-size: 12px; }
-  .rbic { width: 32px; height: 32px; }
-  .nestpanel { top: auto; bottom: 118px; right: 6px; max-width: 62vw; max-height: 46vh; overflow-y: auto; padding: 6px 8px; gap: 4px; border-radius: 14px; }
+  .crownbtn b { font-size: 10px; }
+  .rbic { width: 26px; height: 26px; }
+  .nestpanel { top: auto; bottom: 118px; right: 52px; width: auto; max-width: 62vw; max-height: 46vh; overflow-y: auto; padding: 6px 8px; gap: 4px; border-radius: 14px; }
   .nestpanel.folded { padding: 4px 8px; }
   .ptitle { font-size: 13px; gap: 5px; }
   .ptitle em { font-size: 11px; }
@@ -287,8 +296,13 @@ button { font-family: inherit; }
   .actic { width: 50px; height: 50px; margin-top: -12px; }
   .actbtn.dropbtn { right: 104px; width: 70px; height: 70px; font-size: 12px; }
   .actbtn.dropbtn .actic { width: 38px; height: 38px; }
-  .offer { bottom: 118px; flex-wrap: wrap; max-width: 90vw; padding: 6px 8px; font-size: 13px; }
+  .offer { top: 236px; bottom: auto; left: 8px; transform: translateY(-20px) scale(.9); transform-origin: top left; flex-wrap: nowrap; gap: 6px; max-width: calc(100vw - 64px); padding: 5px 8px; font-size: 12px; }
+  .offer .oic { width: 36px; height: 36px; }
   .offer .otitle, .offer .odesc { white-space: normal; }
+  .offer.show { transform: none; }
+  /* While the nest panel is open on a phone it has the bottom of the screen to itself. */
+  body:has(.nestpanel:not(.folded):not([style*="none"])) .hint,
+  body:has(.nestpanel:not(.folded):not([style*="none"])) .offer { display: none; }
   .whead { font-size: 18px; }
   .wardrobe, .gifts { inset: 3%; padding: 10px; gap: 8px; }
   .wgrid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
@@ -300,7 +314,13 @@ button { font-family: inherit; }
 .adplay { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #fff; color: #2a7dff; font-size: 11px; text-shadow: none; box-shadow: 0 0 0 2px var(--ink); flex: none; }
 
 /* Short landscape frames (portal iframes are often ~950x530) */
-@media (max-height: 620px) {
+@media (max-height: 620px) and (min-height: 501px) and (min-width: 701px) {
+  .board { font-size: 11px; padding: 4px 8px 5px; min-width: 130px; }
+  .boardhead { font-size: 13px; }
+  .boardhead .ic { width: 22px; height: 22px; }
+  .nestpanel { bottom: 112px; max-height: calc(100vh - 300px); }
+  .actbtn { width: 92px; height: 92px; bottom: 14px; }
+  .actic { width: 56px; height: 56px; }
   .missions { width: 190px; padding: 5px 7px 6px; gap: 3px; }
   .mrow { font-size: 12px; padding: 2px 5px; }
   .controls kbd { width: 36px; height: 36px; font-size: 18px; }
